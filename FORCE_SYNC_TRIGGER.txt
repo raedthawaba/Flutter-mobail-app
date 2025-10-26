@@ -1,0 +1,11 @@
+# هذا ملف لإجبار CodeMagic على إعادة التحميل والتحديث
+# آخر تحديث: 2025-10-27 05:06:02
+# Commit: 00c77a0
+# حالة الإصلاحات:
+# ✅ CardTheme error - FIXED (main.dart line 289)
+# ✅ StatefulWidget const errors - FIXED (admin_dashboard_screen.dart, user_dashboard_screen.dart)
+# ✅ Missing imports - FIXED (pending_data.dart, admin_approval_screen.dart, user_browse_data_screen.dart)
+# ✅ Type 'PendingData' errors - FIXED (firebase_database_service.dart)
+# ✅ All compilation errors - RESOLVED
+
+# Latest build trigger - Force CodeMagic to rebuild from latest commit
