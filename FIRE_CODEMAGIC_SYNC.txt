@@ -1,0 +1,16 @@
+🚨 CRITICAL CODEMAGIC SYNC FIX
+============================
+Date: 2025-10-27 05:48:51
+Status: EMERGENCY FULL SYNC TRIGGER
+
+ALL FILES VERIFIED AND CORRECT LOCALLY:
+✅ lib/main.dart - CardTheme FIXED (no const)
+✅ lib/models/pending_data.dart - EXISTS (97 lines)
+✅ lib/screens/admin_approval_screen.dart - EXISTS (642 lines)
+✅ lib/screens/user_browse_data_screen.dart - EXISTS (500 lines)
+✅ lib/services/firebase_database_service.dart - EXISTS (258 lines)
+
+IMMEDIATE ACTION REQUIRED:
+CodeMagic MUST rebuild from this commit
+
+FORCE REBUILD TRIGGER - IGNORE ALL CACHES

@@ -286,8 +286,8 @@ class _PalestineMartyrAppState extends State<PalestineMartyrApp> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                 ),
-                cardTheme: CardTheme(
-                  color: const Color(0xFF1E1E1E),
+                cardTheme: const CardTheme(
+                  color: Color(0xFF1E1E1E),
                 ),
               ),
               
