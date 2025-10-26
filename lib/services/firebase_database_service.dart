@@ -255,4 +255,72 @@ class FirebaseDatabaseService {
       throw Exception('خطأ في رفض البيانات: $e');
     }
   }
+
+  // إضافة الـ methods المفقودة المطلوبة في باقي الملفات
+  
+  // User authentication methods
+  Future<User?> getCurrentUser() async {
+    return _auth.currentUser;
+  }
+
+  Future<void> initializeFirebase() async {
+    await Firebase.initializeApp();
+  }
+
+  // Data insertion methods
+  Future<void> insertMartyr(Martyr martyr) async {
+    final docRef = await _martyrsCollection.add(martyr.toFirestore());
+    print('✅ تم إدراج الشهيد - ID: ${docRef.id}');
+  }
+
+  Future<void> insertInjured(Injured injured) async {
+    final docRef = await _injuredCollection.add(injured.toFirestore());
+    print('✅ تم إدراج الجريح - ID: ${docRef.id}');
+  }
+
+  Future<void> insertPrisoner(Prisoner prisoner) async {
+    final docRef = await _prisonersCollection.add(prisoner.toFirestore());
+    print('✅ تم إدراج المعتقل - ID: ${docRef.id}');
+  }
+
+  // Statistics methods
+  Future<Map<String, int>> getStatistics() async {
+    try {
+      final martyrsSnapshot = await _martyrsCollection.where('status', isEqualTo: 'approved').get();
+      final injuredSnapshot = await _injuredCollection.where('status', isEqualTo: 'approved').get();
+      final prisonersSnapshot = await _prisonersCollection.where('status', isEqualTo: 'approved').get();
+
+      return {
+        'martyrs': martyrsSnapshot.docs.length,
+        'injured': injuredSnapshot.docs.length,
+        'prisoners': prisonersSnapshot.docs.length,
+        'total': martyrsSnapshot.docs.length + injuredSnapshot.docs.length + prisonersSnapshot.docs.length,
+      };
+    } catch (e) {
+      throw Exception('خطأ في جلب الإحصائيات: $e');
+    }
+  }
+
+  // Data retrieval methods
+  Future<List<Martyr>> getAllMartyrs() async {
+    return await getAllApprovedMartyrs();
+  }
+
+  Future<List<Injured>> getAllInjured() async {
+    return await getAllApprovedInjured();
+  }
+
+  Future<List<Prisoner>> getAllPrisoners() async {
+    return await getAllApprovedPrisoners();
+  }
+
+  // Submit data for review
+  Future<void> submitDataForReview(String type, Map<String, dynamic> data, {String? imageUrl, String? resumeUrl}) async {
+    await submitDataForApproval(
+      type: type,
+      data: data,
+      imageUrl: imageUrl,
+      resumeUrl: resumeUrl,
+    );
+  }
 }

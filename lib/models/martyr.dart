@@ -157,6 +157,48 @@ class Martyr extends Equatable {
     );
   }
 
+  // Factory method to create Martyr from Firestore data
+  factory Martyr.fromFirestore(Map<String, dynamic> data) {
+    return Martyr(
+      id: data['id'],
+      fullName: data['fullName'] ?? '',
+      nickname: data['nickname'],
+      tribe: data['tribe'] ?? '',
+      birthDate: data['birthDate'] != null 
+          ? (data['birthDate'] is String 
+              ? DateTime.parse(data['birthDate']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['birthDate']))
+          : null,
+      deathDate: data['deathDate'] != null 
+          ? (data['deathDate'] is String 
+              ? DateTime.parse(data['deathDate']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['deathDate']))
+          : DateTime.now(),
+      deathPlace: data['deathPlace'] ?? '',
+      causeOfDeath: data['causeOfDeath'] ?? '',
+      rankOrPosition: data['rankOrPosition'],
+      participationFronts: data['participationFronts'],
+      familyStatus: data['familyStatus'],
+      numChildren: data['numChildren'],
+      contactFamily: data['contactFamily'] ?? '',
+      addedByUserId: data['addedByUserId'] ?? '',
+      photoPath: data['photoPath'],
+      cvFilePath: data['cvFilePath'],
+      status: data['status'] ?? AppConstants.statusPending,
+      adminNotes: data['adminNotes'],
+      createdAt: data['createdAt'] != null 
+          ? (data['createdAt'] is String 
+              ? DateTime.parse(data['createdAt']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['createdAt']))
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] != null 
+          ? (data['updatedAt'] is String 
+              ? DateTime.parse(data['updatedAt']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['updatedAt']))
+          : null,
+    );
+  }
+
   @override
   List<Object?> get props => [
         id,

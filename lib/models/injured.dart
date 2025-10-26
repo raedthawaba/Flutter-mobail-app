@@ -162,4 +162,46 @@ class Injured extends Equatable {
         createdAt,
         updatedAt,
       ];
+
+  // Factory method to create Injured from Firestore data
+  factory Injured.fromFirestore(Map<String, dynamic> data) {
+    return Injured(
+      id: data['id'],
+      fullName: data['fullName'] ?? '',
+      nickname: data['nickname'],
+      tribe: data['tribe'] ?? '',
+      birthDate: data['birthDate'] != null 
+          ? (data['birthDate'] is String 
+              ? DateTime.parse(data['birthDate']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['birthDate']))
+          : null,
+      injuryDate: data['injuryDate'] != null 
+          ? (data['injuryDate'] is String 
+              ? DateTime.parse(data['injuryDate']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['injuryDate']))
+          : DateTime.now(),
+      injuryPlace: data['injuryPlace'] ?? '',
+      injuryType: data['injuryType'] ?? '',
+      causeOfInjury: data['causeOfInjury'] ?? '',
+      severityLevel: data['severityLevel'] ?? '',
+      currentMedicalCondition: data['currentMedicalCondition'] ?? '',
+      treatmentLocation: data['treatmentLocation'] ?? '',
+      contactFamily: data['contactFamily'] ?? '',
+      addedByUserId: data['addedByUserId'] ?? '',
+      photoPath: data['photoPath'],
+      cvFilePath: data['cvFilePath'],
+      status: data['status'] ?? AppConstants.statusPending,
+      adminNotes: data['adminNotes'],
+      createdAt: data['createdAt'] != null 
+          ? (data['createdAt'] is String 
+              ? DateTime.parse(data['createdAt']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['createdAt']))
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] != null 
+          ? (data['updatedAt'] is String 
+              ? DateTime.parse(data['updatedAt']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['updatedAt']))
+          : null,
+    );
+  }
 }

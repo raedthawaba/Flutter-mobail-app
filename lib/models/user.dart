@@ -11,6 +11,9 @@ class User extends Equatable {
   final String? phoneNumber;
   final DateTime createdAt;
   final DateTime? lastLogin;
+  
+  // Getter for displayName (used in FirebaseDatabaseService)
+  String get displayName => fullName.isNotEmpty ? fullName : username;
 
   const User({
     this.uid,

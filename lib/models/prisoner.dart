@@ -161,4 +161,45 @@ class Prisoner extends Equatable {
         createdAt,
         updatedAt,
       ];
+
+  // Factory method to create Prisoner from Firestore data
+  factory Prisoner.fromFirestore(Map<String, dynamic> data) {
+    return Prisoner(
+      id: data['id'],
+      fullName: data['fullName'] ?? '',
+      nickname: data['nickname'],
+      tribe: data['tribe'] ?? '',
+      birthDate: data['birthDate'] != null 
+          ? (data['birthDate'] is String 
+              ? DateTime.parse(data['birthDate']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['birthDate']))
+          : null,
+      detentionDate: data['detentionDate'] != null 
+          ? (data['detentionDate'] is String 
+              ? DateTime.parse(data['detentionDate']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['detentionDate']))
+          : DateTime.now(),
+      detentionPlace: data['detentionPlace'] ?? '',
+      detentionReason: data['detentionReason'] ?? '',
+      currentStatus: data['currentStatus'] ?? '',
+      prisonLocation: data['prisonLocation'] ?? '',
+      familyVisitStatus: data['familyVisitStatus'] ?? '',
+      contactFamily: data['contactFamily'] ?? '',
+      addedByUserId: data['addedByUserId'] ?? '',
+      photoPath: data['photoPath'],
+      cvFilePath: data['cvFilePath'],
+      status: data['status'] ?? AppConstants.statusPending,
+      adminNotes: data['adminNotes'],
+      createdAt: data['createdAt'] != null 
+          ? (data['createdAt'] is String 
+              ? DateTime.parse(data['createdAt']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['createdAt']))
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] != null 
+          ? (data['updatedAt'] is String 
+              ? DateTime.parse(data['updatedAt']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['updatedAt']))
+          : null,
+    );
+  }
 }
