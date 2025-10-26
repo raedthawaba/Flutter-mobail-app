@@ -167,24 +167,23 @@ class Prisoner extends Equatable {
     return Prisoner(
       id: data['id'],
       fullName: data['fullName'] ?? '',
-      nickname: data['nickname'],
       tribe: data['tribe'] ?? '',
-      birthDate: data['birthDate'] != null 
-          ? (data['birthDate'] is String 
-              ? DateTime.parse(data['birthDate']) 
-              : DateTime.fromMillisecondsSinceEpoch(data['birthDate']))
-          : null,
-      detentionDate: data['detentionDate'] != null 
-          ? (data['detentionDate'] is String 
-              ? DateTime.parse(data['detentionDate']) 
-              : DateTime.fromMillisecondsSinceEpoch(data['detentionDate']))
+      captureDate: data['captureDate'] != null 
+          ? (data['captureDate'] is String 
+              ? DateTime.parse(data['captureDate']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['captureDate']))
           : DateTime.now(),
-      detentionPlace: data['detentionPlace'] ?? '',
-      detentionReason: data['detentionReason'] ?? '',
+      capturePlace: data['capturePlace'] ?? '',
+      capturedBy: data['capturedBy'] ?? '',
       currentStatus: data['currentStatus'] ?? '',
-      prisonLocation: data['prisonLocation'] ?? '',
-      familyVisitStatus: data['familyVisitStatus'] ?? '',
-      contactFamily: data['contactFamily'] ?? '',
+      releaseDate: data['releaseDate'] != null 
+          ? (data['releaseDate'] is String 
+              ? DateTime.parse(data['releaseDate']) 
+              : DateTime.fromMillisecondsSinceEpoch(data['releaseDate']))
+          : null,
+      familyContact: data['familyContact'] ?? '',
+      detentionPlace: data['detentionPlace'],
+      notes: data['notes'],
       addedByUserId: data['addedByUserId'] ?? '',
       photoPath: data['photoPath'],
       cvFilePath: data['cvFilePath'],
@@ -201,5 +200,31 @@ class Prisoner extends Equatable {
               : DateTime.fromMillisecondsSinceEpoch(data['updatedAt']))
           : null,
     );
+  }
+
+  // Method to convert to Firestore map
+  Map<String, dynamic> toFirestore() {
+    final data = <String, dynamic>{
+      'fullName': fullName,
+      'tribe': tribe,
+      'captureDate': captureDate.millisecondsSinceEpoch,
+      'capturePlace': capturePlace,
+      'capturedBy': capturedBy,
+      'currentStatus': currentStatus,
+      'familyContact': familyContact,
+      'addedByUserId': addedByUserId,
+      'status': status,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+    };
+    
+    if (releaseDate != null) data['releaseDate'] = releaseDate!.millisecondsSinceEpoch;
+    if (detentionPlace != null) data['detentionPlace'] = detentionPlace;
+    if (notes != null) data['notes'] = notes;
+    if (photoPath != null) data['photoPath'] = photoPath;
+    if (cvFilePath != null) data['cvFilePath'] = cvFilePath;
+    if (adminNotes != null) data['adminNotes'] = adminNotes;
+    if (updatedAt != null) data['updatedAt'] = updatedAt!.millisecondsSinceEpoch;
+    
+    return data;
   }
 }

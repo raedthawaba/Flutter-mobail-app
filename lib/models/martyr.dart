@@ -199,6 +199,34 @@ class Martyr extends Equatable {
     );
   }
 
+  // Method to convert to Firestore map
+  Map<String, dynamic> toFirestore() {
+    final data = <String, dynamic>{
+      'fullName': fullName,
+      'tribe': tribe,
+      'deathDate': deathDate.millisecondsSinceEpoch,
+      'deathPlace': deathPlace,
+      'causeOfDeath': causeOfDeath,
+      'contactFamily': contactFamily,
+      'addedByUserId': addedByUserId,
+      'status': status,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+    };
+    
+    if (nickname != null) data['nickname'] = nickname;
+    if (birthDate != null) data['birthDate'] = birthDate!.millisecondsSinceEpoch;
+    if (rankOrPosition != null) data['rankOrPosition'] = rankOrPosition;
+    if (participationFronts != null) data['participationFronts'] = participationFronts;
+    if (familyStatus != null) data['familyStatus'] = familyStatus;
+    if (numChildren != null) data['numChildren'] = numChildren;
+    if (photoPath != null) data['photoPath'] = photoPath;
+    if (cvFilePath != null) data['cvFilePath'] = cvFilePath;
+    if (adminNotes != null) data['adminNotes'] = adminNotes;
+    if (updatedAt != null) data['updatedAt'] = updatedAt!.millisecondsSinceEpoch;
+    
+    return data;
+  }
+
   @override
   List<Object?> get props => [
         id,

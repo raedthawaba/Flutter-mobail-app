@@ -168,7 +168,6 @@ class Injured extends Equatable {
     return Injured(
       id: data['id'],
       fullName: data['fullName'] ?? '',
-      nickname: data['nickname'],
       tribe: data['tribe'] ?? '',
       birthDate: data['birthDate'] != null 
           ? (data['birthDate'] is String 
@@ -203,5 +202,31 @@ class Injured extends Equatable {
               : DateTime.fromMillisecondsSinceEpoch(data['updatedAt']))
           : null,
     );
+  }
+
+  // Method to convert to Firestore map
+  Map<String, dynamic> toFirestore() {
+    final data = <String, dynamic>{
+      'fullName': fullName,
+      'tribe': tribe,
+      'injuryDate': injuryDate.millisecondsSinceEpoch,
+      'injuryPlace': injuryPlace,
+      'injuryType': injuryType,
+      'injuryDescription': injuryDescription,
+      'injuryDegree': injuryDegree,
+      'currentStatus': currentStatus,
+      'contactFamily': contactFamily,
+      'addedByUserId': addedByUserId,
+      'status': status,
+      'createdAt': createdAt.millisecondsSinceEpoch,
+    };
+    
+    if (hospitalName != null) data['hospitalName'] = hospitalName;
+    if (photoPath != null) data['photoPath'] = photoPath;
+    if (cvFilePath != null) data['cvFilePath'] = cvFilePath;
+    if (adminNotes != null) data['adminNotes'] = adminNotes;
+    if (updatedAt != null) data['updatedAt'] = updatedAt!.millisecondsSinceEpoch;
+    
+    return data;
   }
 }

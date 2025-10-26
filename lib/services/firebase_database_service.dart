@@ -155,10 +155,10 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         return Martyr.fromFirestore(data).copyWith(id: doc.id);
       }).toList().where((martyr) {
-        return martyr.name.toLowerCase().contains(query.toLowerCase()) ||
-               martyr.age.toString().contains(query) ||
-               martyr.gender.toLowerCase().contains(query.toLowerCase()) ||
-               martyr.governorate.toLowerCase().contains(query.toLowerCase());
+        return martyr.fullName.toLowerCase().contains(query.toLowerCase()) ||
+               martyr.tribe.toLowerCase().contains(query.toLowerCase()) ||
+               martyr.deathPlace.toLowerCase().contains(query.toLowerCase()) ||
+               martyr.causeOfDeath.toLowerCase().contains(query.toLowerCase());
       }).toList();
     } catch (e) {
       throw Exception('خطأ في البحث: $e');
@@ -315,7 +315,12 @@ class FirebaseDatabaseService {
   }
 
   // Submit data for review
-  Future<void> submitDataForReview(String type, Map<String, dynamic> data, {String? imageUrl, String? resumeUrl}) async {
+  Future<void> submitDataForReview({
+    required String type, 
+    required Map<String, dynamic> data, 
+    String? imageUrl, 
+    String? resumeUrl
+  }) async {
     await submitDataForApproval(
       type: type,
       data: data,

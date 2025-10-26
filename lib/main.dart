@@ -54,7 +54,7 @@ Future<void> _runQuickFirebaseTest() async {
 
     // اختبار المستخدم الحالي
     print('\n5️⃣ اختبار المستخدم الحالي...');
-    final currentUser = firebaseService.getCurrentUser();
+    final currentUser = await firebaseService.getCurrentUser();
     if (currentUser != null) {
       print('   المستخدم: ${currentUser.email}');
       // احتاج للحصول على userType من database
