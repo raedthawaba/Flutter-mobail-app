@@ -95,13 +95,13 @@ class _UserDashboardScreenState extends State<UserDashboardScreen> {
     
     switch (dataType) {
       case 'martyrs':
-        destinationScreen = const UserBrowseDataScreen(dataType: 'martyrs');
+        destinationScreen = UserBrowseDataScreen(dataType: 'martyrs');
         break;
       case 'injured':
-        destinationScreen = const UserBrowseDataScreen(dataType: 'injured');
+        destinationScreen = UserBrowseDataScreen(dataType: 'injured');
         break;
       case 'prisoners':
-        destinationScreen = const UserBrowseDataScreen(dataType: 'prisoners');
+        destinationScreen = UserBrowseDataScreen(dataType: 'prisoners');
         break;
       default:
         return;
