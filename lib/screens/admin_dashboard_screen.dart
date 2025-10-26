@@ -4,6 +4,7 @@ import '../constants/app_constants.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/database_service.dart';
+import '../services/firebase_database_service.dart';
 import '../utils/sample_data_generator.dart';
 import 'login_screen.dart';
 import 'admin_martyrs_management_screen.dart';
@@ -11,6 +12,7 @@ import 'admin_injured_management_screen.dart';
 import 'admin_prisoners_management_screen.dart';
 import 'admin_users_management_screen.dart';
 import 'admin_settings_screen.dart';
+import 'admin_approval_screen.dart';
 import 'add_martyr_screen.dart';
 import 'add_injured_screen.dart';
 import 'add_prisoner_screen.dart';
@@ -46,14 +48,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     try {
       final adminName = await _authService.getCurrentUserName();
       
-      // جلب البيانات من قاعدة البيانات المحلية
-      final DatabaseService dbService = DatabaseService();
-      final localStats = await dbService.getStatistics();
+      // جلب البيانات من قاعدة بيانات Firebase
+      final FirebaseDatabaseService dbService = FirebaseDatabaseService();
+      final firebaseStats = await dbService.getStatistics();
       
       if (mounted) {
         setState(() {
           _adminName = adminName;
-          _statistics = localStats;
+          _statistics = firebaseStats;
           _isLoading = false;
         });
       }
@@ -958,6 +960,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       onTap: () {
                         Navigator.pop(context);
                         _navigateToManagement('المستخدمين');
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    // إدارة البيانات المرسلة
+                    _buildMenuItem(
+                      title: 'إدارة البيانات المرسلة',
+                      subtitle: 'مراجعة وإدارة البيانات المرسلة من المستخدمين',
+                      icon: Icons.inbox_outlined,
+                      color: const Color(0xFFFF6F00), // Orange color
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AdminApprovalScreen(),
+                          ),
+                        );
                       },
                     ),
                     const SizedBox(height: 12),

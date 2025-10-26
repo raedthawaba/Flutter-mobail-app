@@ -10,6 +10,67 @@ import 'services/theme_service.dart';
 import 'services/firebase_database_service.dart';
 import 'utils/sample_data_generator.dart';
 
+// دالة اختبار Firebase سريعة
+Future<void> _runQuickFirebaseTest() async {
+  try {
+    print('🚀 بدء اختبار Firebase السريع...');
+    final FirebaseDatabaseService firebaseService = FirebaseDatabaseService();
+
+    // اختبار الشهداء المعتمدين
+    print('\n1️⃣ اختبار الشهداء المعتمدين...');
+    final martyrs = await firebaseService.getAllApprovedMartyrs();
+    print('   عدد الشهداء المعتمدين: ${martyrs.length}');
+    for (var martyr in martyrs.take(2)) {
+      print('   - ${martyr.fullName} (${martyr.status})');
+    }
+
+    // اختبار الجرحى المعتمدين  
+    print('\n2️⃣ اختبار الجرحى المعتمدين...');
+    final injured = await firebaseService.getAllApprovedInjured();
+    print('   عدد الجرحى المعتمدين: ${injured.length}');
+    for (var injuredPerson in injured.take(2)) {
+      print('   - ${injuredPerson.fullName} (${injuredPerson.status})');
+    }
+
+    // اختبار|日本ين المعتمدين
+    print('\n3️⃣ اختبار|日本ين المعتمدين...');
+    final prisoners = await firebaseService.getAllApprovedPrisoners();
+    print('   عدد|日本ين المعتمدين: ${prisoners.length}');
+    for (var prisoner in prisoners.take(2)) {
+      print('   - ${prisoner.fullName} (${prisoner.status})');
+    }
+
+    // اختبار البيانات المعلقة
+    print('\n4️⃣ اختبار البيانات المعلقة...');
+    try {
+      final pendingData = await firebaseService.getPendingData();
+      print('   البيانات المعلقة: ${pendingData.length}');
+      for (var item in pendingData.take(2)) {
+        print('   - ${item.data['fullName']} (${item.type})');
+      }
+    } catch (e) {
+      print('   ❌ خطأ في البيانات المعلقة: $e');
+    }
+
+    // اختبار المستخدم الحالي
+    print('\n5️⃣ اختبار المستخدم الحالي...');
+    final currentUser = firebaseService.getCurrentUser();
+    if (currentUser != null) {
+      print('   المستخدم: ${currentUser.email}');
+      // احتاج للحصول على userType من database
+      print('   UserType: يمكن الحصول عليه من database');
+    } else {
+      print('   لم يتم تسجيل دخول');
+    }
+
+    print('\n✅ انتهى الاختبار بنجاح!');
+    print('📊 ملخص: شهداء(${martyrs.length}) - جرحى(${injured.length}) -|日本ين(${prisoners.length})');
+
+  } catch (e) {
+    print('❌ خطأ في الاختبار: $e');
+  }
+}
+
 void main() async {
   bool firebaseInitialized = false;
   String? initError;
@@ -20,17 +81,6 @@ void main() async {
     print('=== PALESTINE MARTYR APP STARTING ===');
     print('Flutter initialized successfully');
     
-    // تهيئة Firebase Firestore
-    print('Initializing Firebase Firestore...');
-    final FirebaseDatabaseService firebaseDbService = FirebaseDatabaseService();
-    await firebaseDbService.initializeFirebase();
-    print('✅ Firebase Firestore initialized successfully!');
-    
-    // تهيئة ThemeService
-    print('Initializing ThemeService...');
-    await ThemeService().initialize();
-    print('✅ ThemeService initialized successfully!');
-    
     // معالج الأخطاء العالمي لـ Flutter
     FlutterError.onError = (FlutterErrorDetails details) {
       print('=== FLUTTER ERROR CAUGHT ===');
@@ -39,7 +89,7 @@ void main() async {
       FlutterError.presentError(details);
     };
     
-    // تهيئة Firebase
+    // تهيئة Firebase أولاً - هذا مهم!
     try {
       print('Initializing Firebase...');
       await Firebase.initializeApp(
@@ -55,6 +105,24 @@ void main() async {
       // لا نتوقف هنا، نستمر بدون Firebase
     }
     
+    // تهيئة Firebase Firestore بعد تهيئة Firebase الأساسية
+    if (firebaseInitialized) {
+      print('Initializing Firebase Firestore...');
+      final FirebaseDatabaseService firebaseDbService = FirebaseDatabaseService();
+      await firebaseDbService.initializeFirebase();
+      print('✅ Firebase Firestore initialized successfully!');
+    }
+    
+    // تهيئة ThemeService
+    print('Initializing ThemeService...');
+    await ThemeService().initialize();
+    print('✅ ThemeService initialized successfully!');
+    
+    // تشغيل اختبار Firebase سريع
+    print('\n🔥 === STARTING QUICK FIREBASE TEST ===\n');
+    await _runQuickFirebaseTest();
+    print('\n🔥 === FIREBASE TEST COMPLETED ===\n');
+
     // تشغيل التطبيق
     runApp(PalestineMartyrApp(
       firebaseInitialized: firebaseInitialized,
@@ -218,8 +286,8 @@ class _PalestineMartyrAppState extends State<PalestineMartyrApp> {
                   foregroundColor: Colors.white,
                   elevation: 0,
                 ),
-                cardTheme: const CardThemeData(
-                  color: Color(0xFF1E1E1E),
+                cardTheme: CardTheme(
+                  color: const Color(0xFF1E1E1E),
                 ),
               ),
               

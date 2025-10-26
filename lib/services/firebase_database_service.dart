@@ -1,10 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import '../models/user.dart';
+import '../models/user.dart' as app_user;
 import '../models/martyr.dart';
 import '../models/injured.dart';
 import '../models/prisoner.dart';
+import '../models/pending_data.dart';
 import '../constants/app_constants.dart';
 
 class FirebaseDatabaseService {
@@ -20,6 +21,7 @@ class FirebaseDatabaseService {
   CollectionReference get _martyrsCollection => _firestore.collection('martyrs');
   CollectionReference get _injuredCollection => _firestore.collection('injured');
   CollectionReference get _prisonersCollection => _firestore.collection('prisoners');
+  CollectionReference get _pendingDataCollection => _firestore.collection('pending_data');
 
   // ===== دوال المستخدمين =====
 
@@ -52,7 +54,7 @@ class FirebaseDatabaseService {
       // في الإنتاج يجب التحقق من كلمة المرور المشفرة
       // هنا نفترض أن البيانات صالحة للتبسيط
       data['uid'] = doc.id;
-      return User.fromMap(data);
+      return app_user.User.fromMap(data);
     } catch (e) {
       throw Exception('خطأ في جلب المستخدم: $e');
     }
@@ -68,7 +70,7 @@ class FirebaseDatabaseService {
       
       final data = Map<String, dynamic>.from(doc.data() as Map<String, dynamic>);
       data['uid'] = uid;
-      return User.fromMap(data);
+      return app_user.User.fromMap(data);
     } catch (e) {
       throw Exception('خطأ في جلب المستخدم: $e');
     }
@@ -86,7 +88,7 @@ class FirebaseDatabaseService {
         final doc = querySnapshot.docs.first;
         final data = doc.data() as Map<String, dynamic>;
         data['uid'] = doc.id;
-        return User.fromMap(data);
+        return app_user.User.fromMap(data);
       }
       return null;
     } catch (e) {
@@ -123,13 +125,13 @@ class FirebaseDatabaseService {
     }
   }
 
-  Future<List<User>> getAllUsers() async {
+  Future<List<app_user.User>> getAllUsers() async {
     try {
       final querySnapshot = await _usersCollection.get();
       return querySnapshot.docs.map((doc) {
         final data = doc.data() as Map<String, dynamic>;
         data['uid'] = doc.id;
-        return User.fromMap(data);
+        return app_user.User.fromMap(data);
       }).toList();
     } catch (e) {
       throw Exception('خطأ في جلب المستخدمين: $e');
@@ -618,8 +620,7 @@ class FirebaseDatabaseService {
 
       // التحقق من Custom Claims أولاً
       final IdTokenResult tokenResult = await currentUser.getIdTokenResult();
-      final role = tokenResult.claims['role'] as String? ?? '';
-      final userType = tokenResult.claims['userType'] as String? ?? role;
+      final role = tokenResult.claims?['role'] as String?;
       
       if (role != null) return role;
 
@@ -660,17 +661,17 @@ class FirebaseDatabaseService {
   /// التحقق من دور مستخدم محدد
   Future<String?> getUserRole(String uid) async {
     try {
-      // التحقق من Firestore
+      // التحقق من Firestore مباشرة
       final userDoc = await _usersCollection.doc(uid).get();
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
-        return userData['userType'] as String? ?? userData['role'] as String?;
+        return userData['role'] as String?;
       }
 
-      return 'regular'; // Default to regular user
+      return null;
     } catch (e) {
       print('خطأ في التحقق من دور المستخدم $uid: $e');
-      return 'regular';
+      return null;
     }
   }
 
@@ -753,21 +754,513 @@ class FirebaseDatabaseService {
         }
       });
 
-      await _injuredCollection.where('test_record', isEqualTo: true).get().then((snapshot) => {
+      await _injuredCollection.where('test_record', isEqualTo: true).get().then((snapshot) async {
         for (var doc in snapshot.docs) {
-          doc.reference.delete();
+          await doc.reference.delete();
         }
       });
 
-      await _prisonersCollection.where('test_record', isEqualTo: true).get().then((snapshot) => {
+      await _prisonersCollection.where('test_record', isEqualTo: true).get().then((snapshot) async {
         for (var doc in snapshot.docs) {
-          doc.reference.delete();
+          await doc.reference.delete();
         }
       });
 
       print('✅ تم تنظيف البيانات التجريبية بنجاح');
     } catch (e) {
       throw Exception('خطأ في تنظيف البيانات: $e');
+    }
+  }
+
+  // ===== دوال إدارة البيانات المرسلة للمسؤول =====
+  
+  /// إرسال بيانات جديدة للمراجعة
+  Future<String> submitDataForReview({
+    required String type, // 'martyr', 'injured', 'prisoner'
+    required Map<String, dynamic> data,
+    String? imageUrl,
+    String? resumeUrl,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      final pendingData = PendingData(
+        id: null,
+        type: type,
+        status: 'pending',
+        data: data,
+        imageUrl: imageUrl,
+        resumeUrl: resumeUrl,
+        submittedBy: user.uid,
+        submittedAt: DateTime.now(),
+      );
+
+      final docRef = await _pendingDataCollection.add(pendingData.toFirestore());
+      
+      print('✅ تم إرسال البيانات للمراجعة - ID: ${docRef.id}');
+      return docRef.id;
+    } catch (e) {
+      throw Exception('خطأ في إرسال البيانات: $e');
+    }
+  }
+
+  /// جلب جميع البيانات المرسلة (للمسؤول)
+  Future<List<PendingData>> getPendingData({
+    String? statusFilter, // 'pending', 'approved', 'rejected', 'hidden'
+    String? typeFilter, // 'martyr', 'injured', 'prisoner'
+    int limit = 50,
+  }) async {
+    try {
+      Query query = _pendingDataCollection;
+      
+      if (statusFilter != null) {
+        query = query.where('status', isEqualTo: statusFilter);
+      }
+      
+      if (typeFilter != null) {
+        query = query.where('type', isEqualTo: typeFilter);
+      }
+      
+      query = query.orderBy('submittedAt', descending: true).limit(limit);
+      
+      final snapshot = await query.get();
+      
+      return snapshot.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        return PendingData.fromFirestore(data).copyWith(id: doc.id);
+      }).toList();
+    } catch (e) {
+      throw Exception('خطأ في جلب البيانات المرسلة: $e');
+    }
+  }
+
+  /// الموافقة على البيانات ونقلها للمجموعة الرئيسية
+  Future<void> approveData(String pendingId, {String? adminNotes}) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      final docRef = _pendingDataCollection.doc(pendingId);
+      final doc = await docRef.get();
+      
+      if (!doc.exists) {
+        throw Exception('البيانات غير موجودة');
+      }
+      
+      final pendingData = PendingData.fromFirestore(doc.data() as Map<String, dynamic>).copyWith(id: pendingId);
+      
+      // نقل البيانات إلى المجموعة الرئيسية مع status = 'approved'
+      switch (pendingData.type) {
+        case 'martyr':
+          await _martyrsCollection.doc(pendingId).set({
+            ...pendingData.data,
+            'status': 'approved', // إضافة status للتوافق مع getAllApprovedMartyrs()
+            'image_url': pendingData.imageUrl,
+            'resume_url': pendingData.resumeUrl,
+            'approved_by': user.uid,
+            'approved_at': FieldValue.serverTimestamp(),
+          });
+          break;
+        case 'injured':
+          await _injuredCollection.doc(pendingId).set({
+            ...pendingData.data,
+            'status': 'approved', // إضافة status للتوافق مع getAllApprovedInjured()
+            'image_url': pendingData.imageUrl,
+            'resume_url': pendingData.resumeUrl,
+            'approved_by': user.uid,
+            'approved_at': FieldValue.serverTimestamp(),
+          });
+          break;
+        case 'prisoner':
+          await _prisonersCollection.doc(pendingId).set({
+            ...pendingData.data,
+            'status': 'approved', // إضافة status للتوافق مع getAllApprovedPrisoners()
+            'image_url': pendingData.imageUrl,
+            'resume_url': pendingData.resumeUrl,
+            'approved_by': user.uid,
+            'approved_at': FieldValue.serverTimestamp(),
+          });
+          break;
+        default:
+          throw Exception('نوع البيانات غير صحيح');
+      }
+      
+      // تحديث حالة البيانات المرسلة
+      await docRef.update({
+        'status': 'approved',
+        'adminNotes': adminNotes ?? '',
+        'adminAction': 'approved',
+        'processedAt': FieldValue.serverTimestamp(),
+        'adminId': user.uid,
+      });
+      
+      print('✅ تمت الموافقة على البيانات وتحويلها للمجموعة الرئيسية');
+    } catch (e) {
+      throw Exception('خطأ في الموافقة على البيانات: $e');
+    }
+  }
+
+  /// رفض البيانات
+  Future<void> rejectData(String pendingId, {required String reason}) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      await _pendingDataCollection.doc(pendingId).update({
+        'status': 'rejected',
+        'adminNotes': reason,
+        'adminAction': 'rejected',
+        'processedAt': FieldValue.serverTimestamp(),
+        'adminId': user.uid,
+      });
+      
+      print('✅ تم رفض البيانات - ID: $pendingId');
+    } catch (e) {
+      throw Exception('خطأ في رفض البيانات: $e');
+    }
+  }
+
+  /// إخفاء البيانات من العرض العام
+  Future<void> hideData(String pendingId, {String? reason}) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      await _pendingDataCollection.doc(pendingId).update({
+        'status': 'hidden',
+        'adminNotes': reason ?? 'مخفية بواسطة المسؤول',
+        'adminAction': 'hidden',
+        'processedAt': FieldValue.serverTimestamp(),
+        'adminId': user.uid,
+      });
+      
+      print('✅ تم إخفاء البيانات');
+    } catch (e) {
+      throw Exception('خطأ في إخفاء البيانات: $e');
+    }
+  }
+
+  /// حذف البيانات نهائياً
+  Future<void> deleteData(String pendingId) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      await _pendingDataCollection.doc(pendingId).delete();
+      
+      print('✅ تم حذف البيانات نهائياً');
+    } catch (e) {
+      throw Exception('خطأ في حذف البيانات: $e');
+    }
+  }
+
+  /// جلب إحصائيات البيانات المرسلة
+  Future<Map<String, int>> getPendingDataStatistics() async {
+    try {
+      final snapshot = await _pendingDataCollection.get();
+      
+      int pending = 0;
+      int approved = 0;
+      int rejected = 0;
+      int hidden = 0;
+      
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final status = data['status'] as String;
+        
+        switch (status) {
+          case 'pending':
+            pending++;
+            break;
+          case 'approved':
+            approved++;
+            break;
+          case 'rejected':
+            rejected++;
+            break;
+          case 'hidden':
+            hidden++;
+            break;
+        }
+      }
+      
+      return {
+        'pending': pending,
+        'approved': approved,
+        'rejected': rejected,
+        'hidden': hidden,
+        'total': snapshot.docs.length,
+      };
+    } catch (e) {
+      throw Exception('خطأ في جلب إحصائيات البيانات المرسلة: $e');
+    }
+  }
+
+  // ===== دوال تصفح البيانات للمستخدمين =====
+
+  /// جلب جميع الشهداء المعتمدين (للعرض فقط)
+  Future<List<Martyr>> getAllApprovedMartyrs() async {
+    try {
+      print('🔍 === بدء جلب الشهداء المعتمدين ===');
+      
+      // استعلام بسيط بدون orderBy لتجنب مشاكل الفهارس
+      final querySnapshot = await _martyrsCollection
+          .where('status', isEqualTo: 'approved')
+          .get();
+      
+      print('📊 تم جلب ${querySnapshot.docs.length} مستند من Firestore');
+      
+      if (querySnapshot.docs.isEmpty) {
+        print('⚠️ لا توجد أي documents مع status="approved" في collection الشهداء');
+        
+        // فحص ما إذا كان هناك أي documents على الإطلاق
+        final allMartyrs = await _martyrsCollection.get();
+        print('📄 إجمالي documents في الشهداء: ${allMartyrs.docs.length}');
+        
+        if (allMartyrs.docs.isNotEmpty) {
+          print('🔍 فحص status documents الموجودة:');
+          for (var doc in allMartyrs.docs.take(3)) {
+            final data = doc.data() as Map<String, dynamic>;
+            print('  - ${data['fullName']}: status="${data['status']}"');
+          }
+        }
+      }
+      
+      List<Martyr> martyrs = [];
+      
+      for (var doc in querySnapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          data['id'] = doc.id;
+          
+          print('📄 معالجة وثيقة: ${data['fullName']} (ID: ${doc.id})');
+          
+          Martyr martyr = _convertFirestoreToMartyr(data);
+          martyrs.add(martyr);
+          print('✅ تم إضافة الشهيد بنجاح');
+        } catch (e) {
+          print('⚠️ خطأ في معالجة الوثيقة ${doc.id}: $e');
+        }
+      }
+      
+      // ترتيب البيانات في Flutter
+      martyrs.sort((a, b) => a.fullName.compareTo(b.fullName));
+      
+      print('🎉 تم ترتيب وإرجاع ${martyrs.length} شهيد');
+      print('🔍 === انتهاء جلب الشهداء ===');
+      return martyrs;
+      
+    } catch (e, stackTrace) {
+      print('💥 خطأ في جلب الشهداء المعتمدين:');
+      print('Error: $e');
+      print('StackTrace: $stackTrace');
+      
+      // إرجاع قائمة فارغة بدلاً من رمي خطأ
+      return [];
+    }
+  }
+
+  /// جلب جميع الجرحى المعتمدين (للعرض فقط)
+  Future<List<Injured>> getAllApprovedInjured() async {
+    try {
+      print('🔍 === بدء جلب الجرحى المعتمدين ===');
+      
+      final querySnapshot = await _injuredCollection
+          .where('status', isEqualTo: 'approved')
+          .get();
+      
+      print('📊 تم جلب ${querySnapshot.docs.length} مستند من Firestore');
+      
+      if (querySnapshot.docs.isEmpty) {
+        print('⚠️ لا توجد أي documents مع status="approved" في collection الجرحى');
+        
+        // فحص ما إذا كان هناك أي documents على الإطلاق
+        final allInjured = await _injuredCollection.get();
+        print('📄 إجمالي documents في الجرحى: ${allInjured.docs.length}');
+        
+        if (allInjured.docs.isNotEmpty) {
+          print('🔍 فحص status documents الموجودة:');
+          for (var doc in allInjured.docs.take(3)) {
+            final data = doc.data() as Map<String, dynamic>;
+            print('  - ${data['fullName']}: status="${data['status']}"');
+          }
+        }
+      }
+      
+      List<Injured> injured = [];
+      
+      for (var doc in querySnapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          data['id'] = doc.id;
+          
+          print('📄 معالجة وثيقة: ${data['fullName']} (ID: ${doc.id})');
+          
+          Injured injuredPerson = _convertFirestoreToInjured(data);
+          injured.add(injuredPerson);
+          print('✅ تم إضافة الجريح بنجاح');
+        } catch (e) {
+          print('⚠️ خطأ في معالجة الوثيقة ${doc.id}: $e');
+        }
+      }
+      
+      // ترتيب البيانات في Flutter بدلاً من Firestore
+      injured.sort((a, b) => a.fullName.compareTo(b.fullName));
+      
+      print('🎉 تم ترتيب وإرجاع ${injured.length} جريح معتمد');
+      print('🔍 === انتهاء جلب الجرحى ===');
+      return injured;
+    } catch (e, stackTrace) {
+      print('💥 Error: $e\nStackTrace: $stackTrace');
+      return []; // Return empty list instead of throwing
+    }
+  }
+
+  /// جلب جميع الإسرائيليين المعتمدين (للعرض فقط)
+  Future<List<Prisoner>> getAllApprovedPrisoners() async {
+    try {
+      print('🔍 === بدء جلب الإسرائيليين المعتمدين ===');
+      
+      final querySnapshot = await _prisonersCollection
+          .where('status', isEqualTo: 'approved')
+          .get();
+      
+      print('📊 تم جلب ${querySnapshot.docs.length} مستند من Firestore');
+      
+      if (querySnapshot.docs.isEmpty) {
+        print('⚠️ لا توجد أي documents مع status="approved" في collection الإسرائيليين');
+        
+        // فحص ما إذا كان هناك أي documents على الإطلاق
+        final allPrisoners = await _prisonersCollection.get();
+        print('📄 إجمالي documents في الإسرائيليين: ${allPrisoners.docs.length}');
+        
+        if (allPrisoners.docs.isNotEmpty) {
+          print('🔍 فحص status documents الموجودة:');
+          for (var doc in allPrisoners.docs.take(3)) {
+            final data = doc.data() as Map<String, dynamic>;
+            print('  - ${data['fullName']}: status="${data['status']}"');
+          }
+        }
+      }
+      
+      List<Prisoner> prisoners = [];
+      
+      for (var doc in querySnapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          data['id'] = doc.id;
+          
+          print('📄 معالجة وثيقة: ${data['fullName']} (ID: ${doc.id})');
+          
+          Prisoner prisoner = _convertFirestoreToPrisoner(data);
+          prisoners.add(prisoner);
+          print('✅ تم إضافة المعتقل بنجاح');
+        } catch (e) {
+          print('⚠️ خطأ في معالجة الوثيقة ${doc.id}: $e');
+        }
+      }
+      
+      // ترتيب البيانات في Flutter بدلاً من Firestore
+      prisoners.sort((a, b) => a.fullName.compareTo(b.fullName));
+      
+      print('🎉 تم ترتيب وإرجاع ${prisoners.length} معتقل معتمد');
+      print('🔍 === انتهاء جلب الإسرائيليين ===');
+      return prisoners;
+    } catch (e, stackTrace) {
+      print('💥 Error: $e\nStackTrace: $stackTrace');
+      return []; // Return empty list instead of throwing
+    }
+  }
+
+  /// دالة موحدة لجلب جميع البيانات المعتمدة (للاستخدام في شاشة التصفح)
+  Future<List<dynamic>> getAllApprovedData(String dataType) async {
+    switch (dataType) {
+      case 'martyrs':
+        return await getAllApprovedMartyrs();
+      case 'injured':
+        return await getAllApprovedInjured();
+      case 'prisoners':
+        return await getAllApprovedPrisoners();
+      default:
+        throw Exception('نوع البيانات غير مدعوم: $dataType');
+    }
+  }
+  
+  /// دالة debug لفحص البيانات في Firebase
+  Future<void> debugFirebaseData() async {
+    try {
+      print('🔍 === FIREBASE DEBUG START ===');
+      
+      // فحص جميع الشهداء
+      print('\n📊 فحص collection الشهداء:');
+      final martyrsSnapshot = await _martyrsCollection.get();
+      print('📄 إجمالي documents في martyrs: ${martyrsSnapshot.docs.length}');
+      
+      for (int i = 0; i < martyrsSnapshot.docs.length && i < 5; i++) {
+        final doc = martyrsSnapshot.docs[i];
+        final data = doc.data() as Map<String, dynamic>;
+        print('  - Document ${i+1}: ID=${doc.id}, Status=${data['status']}, Name=${data['fullName']}');
+      }
+      
+      // فحص جميع الجرحى
+      print('\n📊 فحص collection الجرحى:');
+      final injuredSnapshot = await _injuredCollection.get();
+      print('📄 إجمالي documents في injured: ${injuredSnapshot.docs.length}');
+      
+      for (int i = 0; i < injuredSnapshot.docs.length && i < 5; i++) {
+        final doc = injuredSnapshot.docs[i];
+        final data = doc.data() as Map<String, dynamic>;
+        print('  - Document ${i+1}: ID=${doc.id}, Status=${data['status']}, Name=${data['fullName']}');
+      }
+      
+      // فحص جميع季后赛
+      print('\n📊 فحص collection季后赛:');
+      final prisonersSnapshot = await _prisonersCollection.get();
+      print('📄 إجمالي documents في prisoners: ${prisonersSnapshot.docs.length}');
+      
+      for (int i = 0; i < prisonersSnapshot.docs.length && i < 5; i++) {
+        final doc = prisonersSnapshot.docs[i];
+        final data = doc.data() as Map<String, dynamic>;
+        print('  - Document ${i+1}: ID=${doc.id}, Status=${data['status']}, Name=${data['fullName']}');
+      }
+      
+      // فحص البيانات المعلقة للمراجعة
+      print('\n📊 فحص collection pending_data:');
+      final pendingSnapshot = await _pendingDataCollection.get();
+      print('📄 إجمالي documents في pending_data: ${pendingSnapshot.docs.length}');
+      
+      int pendingCount = 0, approvedCount = 0, rejectedCount = 0;
+      for (int i = 0; i < pendingSnapshot.docs.length && i < 5; i++) {
+        final doc = pendingSnapshot.docs[i];
+        final data = doc.data() as Map<String, dynamic>;
+        String status = data['status'];
+        String type = data['type'];
+        print('  - Document ${i+1}: ID=${doc.id}, Status=$status, Type=$type');
+        
+        if (status == 'pending') pendingCount++;
+        else if (status == 'approved') approvedCount++;
+        else if (status == 'rejected') rejectedCount++;
+      }
+      print('📊 ملخص pending_data:');
+      print('  ⏳ انتظار المراجعة: $pendingCount');
+      print('  ✅ تمت الموافقة: $approvedCount');
+      print('  ❌ مرفوضة: $rejectedCount');
+      
+      print('\n🔍 === FIREBASE DEBUG END ===');
+      
+    } catch (e) {
+      print('💥 Error in debugFirebaseData: $e');
     }
   }
 }
