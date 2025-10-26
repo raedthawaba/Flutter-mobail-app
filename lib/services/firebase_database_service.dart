@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
-import '../models/user.dart' as app_user;
+import '../models/user.dart';
 import '../models/martyr.dart';
 import '../models/injured.dart';
 import '../models/prisoner.dart';
@@ -123,7 +123,7 @@ class FirebaseDatabaseService {
     }
   }
 
-  Future<List<app_user.User>> getAllUsers() async {
+  Future<List<User>> getAllUsers() async {
     try {
       final querySnapshot = await _usersCollection.get();
       return querySnapshot.docs.map((doc) {
@@ -618,7 +618,8 @@ class FirebaseDatabaseService {
 
       // التحقق من Custom Claims أولاً
       final IdTokenResult tokenResult = await currentUser.getIdTokenResult();
-      final role = tokenResult.claims['role'] as String?;
+      final role = tokenResult.claims['role'] as String? ?? '';
+      final userType = tokenResult.claims['userType'] as String? ?? role;
       
       if (role != null) return role;
 
@@ -659,24 +660,17 @@ class FirebaseDatabaseService {
   /// التحقق من دور مستخدم محدد
   Future<String?> getUserRole(String uid) async {
     try {
-      // التحقق من Custom Claims
-      final UserRecord? userRecord = await _auth.getUser(uid);
-      final IdTokenResult tokenResult = await userRecord!.getIdTokenResult();
-      final role = tokenResult.claims['role'] as String?;
-      
-      if (role != null) return role;
-
-      // التحقق من Firestore كبديل
+      // التحقق من Firestore
       final userDoc = await _usersCollection.doc(uid).get();
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
-        return userData['role'] as String?;
+        return userData['userType'] as String? ?? userData['role'] as String?;
       }
 
-      return null;
+      return 'regular'; // Default to regular user
     } catch (e) {
       print('خطأ في التحقق من دور المستخدم $uid: $e');
-      return null;
+      return 'regular';
     }
   }
 

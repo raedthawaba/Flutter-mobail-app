@@ -316,9 +316,7 @@ class StatisticsService {
       };
     }
   }
-
-  // إحصائيات التحليل العميق
-  Future<Map<String, dynamic>> getDeepAnalytics() async {
+}
     try {
       Map<String, dynamic> analytics = {
         'patterns': {},
