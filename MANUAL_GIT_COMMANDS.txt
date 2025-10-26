@@ -1,0 +1,28 @@
+MANUAL GIT COMMANDS - EXECUTE IN TERMINAL
+=========================================
+
+Step 1: Navigate to project directory
+--------------------------------------
+cd /workspace/Flutter-mobail-app
+
+Step 2: Add all changes to git
+------------------------------
+git add -A
+
+Step 3: Commit changes
+----------------------
+git commit -m "🔥 FINAL FIX: All compilation errors resolved - pending_data.dart, firebase_database_service.dart recreated, CardTheme fixed"
+
+Step 4: Push to GitHub (force with lease)
+-----------------------------------------
+git push --force-with-lease origin master
+
+Step 5: Get new commit hash
+----------------------------
+git rev-parse HEAD
+
+EXPECTED OUTPUT:
+- You will see a new commit hash (like: a1b2c3d4e5f6...)
+- Copy this new hash and send it to me
+
+Current Commit: 243f1e5a2b52fd450f67020568b8d8b11d41c3e3
