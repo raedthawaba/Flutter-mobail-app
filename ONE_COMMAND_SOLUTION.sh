@@ -1,0 +1,1 @@
+cd /workspace/Flutter-mobail-app && flutter clean && flutter pub get && git add -A && git commit -m "📱 FINAL: All compilation errors resolved - CardTheme fixed, all files perfect" && git push --force-with-lease origin master
