@@ -134,7 +134,8 @@ class FirebaseDatabaseService {
         return app_user.User.fromMap(data);
       }).toList();
     } catch (e) {
-      throw Exception('خطأ في جلب المستخدمين: $e');
+      print('خطأ في جلب المستخدمين: $e');
+      return []; // ارجع قائمة فارغة بدلاً من exception
     }
   }
 
@@ -390,30 +391,74 @@ class FirebaseDatabaseService {
 
   Future<Map<String, int>> getStatistics() async {
     try {
+      // جلب جميع الوثائق
       final martyrsSnapshot = await _martyrsCollection.get();
       final injuredSnapshot = await _injuredCollection.get();
       final prisonersSnapshot = await _prisonersCollection.get();
 
-      final pendingMartyrs = await _martyrsCollection
-          .where('status', isEqualTo: AppConstants.statusPending)
-          .get();
-      final pendingInjured = await _injuredCollection
-          .where('status', isEqualTo: AppConstants.statusPending)
-          .get();
-      final pendingPrisoners = await _prisonersCollection
-          .where('status', isEqualTo: AppConstants.statusPending)
-          .get();
+      // فلترة البيانات المعلقة (pending)
+      final pendingMartyrs = martyrsSnapshot.docs
+          .where((doc) => 
+              (doc.data() as Map<String, dynamic>)['status'] == 'pending' ||
+              (doc.data() as Map<String, dynamic>)['status'] == 'قيد المراجعة')
+          .length;
+      
+      final pendingInjured = injuredSnapshot.docs
+          .where((doc) => 
+              (doc.data() as Map<String, dynamic>)['status'] == 'pending' ||
+              (doc.data() as Map<String, dynamic>)['status'] == 'قيد المراجعة')
+          .length;
+      
+      final pendingPrisoners = prisonersSnapshot.docs
+          .where((doc) => 
+              (doc.data() as Map<String, dynamic>)['status'] == 'pending' ||
+              (doc.data() as Map<String, dynamic>)['status'] == 'قيد المراجعة')
+          .length;
 
       return {
         'martyrs': martyrsSnapshot.docs.length,
         'injured': injuredSnapshot.docs.length,
         'prisoners': prisonersSnapshot.docs.length,
-        'pending': pendingMartyrs.docs.length + 
-                  pendingInjured.docs.length + 
-                  pendingPrisoners.docs.length,
+        'pending': pendingMartyrs + pendingInjured + pendingPrisoners,
       };
     } catch (e) {
-      throw Exception('خطأ في جلب الإحصائيات: $e');
+      // في حالة الخطأ، ارجع أصفار بدلاً من رمي exception
+      print('خطأ في جلب الإحصائيات: $e');
+      return {
+        'martyrs': 0,
+        'injured': 0,
+        'prisoners': 0,
+        'pending': 0,
+      };
+    }
+  }
+
+  /// جلب إحصائيات المستخدمين
+  Future<Map<String, int>> getUsersStatistics() async {
+    try {
+      final usersSnapshot = await _usersCollection.get();
+      final totalUsers = usersSnapshot.docs.length;
+      
+      final adminCount = usersSnapshot.docs
+          .where((doc) => 
+              (doc.data() as Map<String, dynamic>)['user_type'] == 'admin' ||
+              (doc.data() as Map<String, dynamic>)['user_type'] == 'admin')
+          .length;
+          
+      final regularCount = totalUsers - adminCount;
+
+      return {
+        'total_users': totalUsers,
+        'admin_count': adminCount,
+        'regular_count': regularCount,
+      };
+    } catch (e) {
+      print('خطأ في جلب إحصائيات المستخدمين: $e');
+      return {
+        'total_users': 0,
+        'admin_count': 0,
+        'regular_count': 0,
+      };
     }
   }
 

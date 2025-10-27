@@ -41,6 +41,8 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
     try {
       List<dynamic> data = [];
       
+      print('📡 جلب البيانات من نوع: ${widget.dataType}');
+      
       switch (widget.dataType) {
         case 'martyrs':
           data = await _firebaseService.getAllApprovedMartyrs();
@@ -53,11 +55,14 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
           break;
       }
       
+      print('✅ تم جلب ${data.length} عنصر من نوع ${widget.dataType}');
+      
       setState(() {
         _dataList = data;
         _isLoading = false;
       });
     } catch (e) {
+      print('❌ خطأ في جلب البيانات: $e');
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('خطأ في تحميل البيانات: $e')),

@@ -52,6 +52,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       final FirebaseDatabaseService dbService = FirebaseDatabaseService();
       final firebaseStats = await dbService.getStatistics();
       
+      print('📊 إحصائيات Firebase: $firebaseStats');
+      
       if (mounted) {
         setState(() {
           _adminName = adminName;
@@ -60,6 +62,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         });
       }
     } catch (e) {
+      print('❌ خطأ في تحميل البيانات: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;

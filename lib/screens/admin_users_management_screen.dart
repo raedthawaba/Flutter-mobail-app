@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../models/user.dart';
 import '../services/firestore_service.dart';
+import '../services/firebase_database_service.dart';
 import '../widgets/custom_dialogs.dart';
 import '../widgets/info_card.dart';
 
@@ -62,13 +63,21 @@ class _AdminUsersManagementScreenState extends State<AdminUsersManagementScreen>
   Future<void> _loadUsers() async {
     try {
       setState(() => _isLoading = true);
-      final users = await _firestoreService.getAllUsers();
+      
+      print('👥 جلب المستخدمين من Firebase...');
+      
+      final FirebaseDatabaseService firebaseService = FirebaseDatabaseService();
+      final users = await firebaseService.getAllUsers();
+      
+      print('✅ تم جلب ${users.length} مستخدم');
+      
       setState(() {
         _users = users;
         _applyFilters();
         _isLoading = false;
       });
     } catch (e) {
+      print('❌ خطأ في جلب المستخدمين: $e');
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
