@@ -390,30 +390,57 @@ class FirebaseDatabaseService {
 
   Future<Map<String, int>> getStatistics() async {
     try {
+      // جلب جميع البيانات أولاً بدون فلتر
       final martyrsSnapshot = await _martyrsCollection.get();
       final injuredSnapshot = await _injuredCollection.get();
       final prisonersSnapshot = await _prisonersCollection.get();
 
-      final pendingMartyrs = await _martyrsCollection
-          .where('status', isEqualTo: AppConstants.statusPending)
-          .get();
-      final pendingInjured = await _injuredCollection
-          .where('status', isEqualTo: AppConstants.statusPending)
-          .get();
-      final pendingPrisoners = await _prisonersCollection
-          .where('status', isEqualTo: AppConstants.statusPending)
-          .get();
+      // فلترة البيانات حسب الحالة في الذاكرة (يدعم العربية والإنجليزية)
+      final pendingMartyrs = martyrsSnapshot.docs
+          .where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final status = data['status'] ?? '';
+            return status == 'pending' || status == 'قيد المراجعة';
+          })
+          .length;
+
+      final pendingInjured = injuredSnapshot.docs
+          .where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final status = data['status'] ?? '';
+            return status == 'pending' || status == 'قيد المراجعة';
+          })
+          .length;
+
+      final pendingPrisoners = prisonersSnapshot.docs
+          .where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final status = data['status'] ?? '';
+            return status == 'pending' || status == 'قيد المراجعة';
+          })
+          .length;
+
+      print('📊 إحصائيات Firebase:');
+      print('  الشهداء: ${martyrsSnapshot.docs.length}');
+      print('  الجرحى: ${injuredSnapshot.docs.length}');
+      print('  الأسرى: ${prisonersSnapshot.docs.length}');
+      print('  قيد المراجعة: ${pendingMartyrs + pendingInjured + pendingPrisoners}');
 
       return {
         'martyrs': martyrsSnapshot.docs.length,
         'injured': injuredSnapshot.docs.length,
         'prisoners': prisonersSnapshot.docs.length,
-        'pending': pendingMartyrs.docs.length + 
-                  pendingInjured.docs.length + 
-                  pendingPrisoners.docs.length,
+        'pending': pendingMartyrs + pendingInjured + pendingPrisoners,
       };
     } catch (e) {
-      throw Exception('خطأ في جلب الإحصائيات: $e');
+      print('خطأ في جلب الإحصائيات: $e');
+      // إرجاع قيم افتراضية بدلاً من throwing exception
+      return {
+        'martyrs': 0,
+        'injured': 0,
+        'prisoners': 0,
+        'pending': 0,
+      };
     }
   }
 

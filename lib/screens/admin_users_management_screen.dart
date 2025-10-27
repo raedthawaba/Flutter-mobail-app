@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../models/user.dart';
-import '../services/firestore_service.dart';
+import '../services/firebase_database_service.dart';
 import '../widgets/custom_dialogs.dart';
 import '../widgets/info_card.dart';
 
@@ -14,7 +14,7 @@ class AdminUsersManagementScreen extends StatefulWidget {
 }
 
 class _AdminUsersManagementScreenState extends State<AdminUsersManagementScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
+  final FirebaseDatabaseService _firestoreService = FirebaseDatabaseService();
   List<User> _users = [];
   List<User> _filteredUsers = [];
   bool _isLoading = true;
