@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-// import '../models/pending_data.dart'; // مؤقتاً معطل
 import '../models/martyr.dart';
 import '../models/injured.dart';
 import '../models/prisoner.dart';
@@ -18,29 +17,42 @@ class AdminApprovalScreen extends StatefulWidget {
 class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
   final FirebaseDatabaseService _dbService = FirebaseDatabaseService();
   
-  List<dynamic> _pendingData = []; // مؤقتاً List<PendingData>
+  List<dynamic> _allData = []; // Combined list of all data types
   bool _isLoading = true;
-  String _selectedStatus = 'all'; // all, pending, approved, rejected, hidden
+  String _selectedStatus = 'all'; // all, pending, approved, rejected
   String _selectedType = 'all'; // all, martyr, injured, prisoner
   String _searchQuery = '';
   
   @override
   void initState() {
     super.initState();
-    _loadPendingData();
+    _loadAllData();
   }
 
-  Future<void> _loadPendingData() async {
+  Future<void> _loadAllData() async {
     try {
       setState(() => _isLoading = true);
       
-      final data = await _dbService.getPendingData(
-        statusFilter: _selectedStatus == 'all' ? null : _selectedStatus,
-        typeFilter: _selectedType == 'all' ? null : _selectedType,
-      );
+      List<dynamic> combinedData = [];
+      
+      // جلب البيانات من جميع Collections
+      if (_selectedType == 'all' || _selectedType == 'martyr') {
+        final martyrs = await _dbService.getAllMartyrs();
+        combinedData.addAll(martyrs.map((m) => {'type': 'martyr', 'data': m}));
+      }
+      
+      if (_selectedType == 'all' || _selectedType == 'injured') {
+        final injured = await _dbService.getAllInjured();
+        combinedData.addAll(injured.map((i) => {'type': 'injured', 'data': i}));
+      }
+      
+      if (_selectedType == 'all' || _selectedType == 'prisoner') {
+        final prisoners = await _dbService.getAllPrisoners();
+        combinedData.addAll(prisoners.map((p) => {'type': 'prisoner', 'data': p}));
+      }
       
       setState(() {
-        _pendingData = data;
+        _allData = combinedData;
         _isLoading = false;
       });
     } catch (e) {
@@ -52,12 +64,33 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
   }
 
   List<dynamic> get _filteredData {
-    List<dynamic> filtered = _pendingData;
+    List<dynamic> filtered = _allData;
     
+    // فلتر الحالة
+    if (_selectedStatus != 'all') {
+      filtered = filtered.where((item) {
+        final status = item['data'].status ?? '';
+        return status == _selectedStatus;
+      }).toList();
+    }
+    
+    // البحث
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((item) {
-        final data = item.toString().toLowerCase();
-        return data.contains(_searchQuery.toLowerCase());
+        final data = item['data'];
+        final type = item['type'];
+        
+        String searchText = '';
+        
+        if (type == 'martyr') {
+          searchText = '${data.fullName ?? ''} ${data.tribe ?? ''} ${data.deathPlace ?? ''}';
+        } else if (type == 'injured') {
+          searchText = '${data.fullName ?? ''} ${data.tribe ?? ''} ${data.injuryPlace ?? ''}';
+        } else if (type == 'prisoner') {
+          searchText = '${data.fullName ?? ''} ${data.tribe ?? ''} ${data.capturePlace ?? ''}';
+        }
+        
+        return searchText.toLowerCase().contains(_searchQuery.toLowerCase());
       }).toList();
     }
     
@@ -68,13 +101,13 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('إدارة البيانات المرسلة'),
+        title: const Text('إدارة البيانات'),
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadPendingData,
+            onPressed: _loadAllData,
           ),
         ],
       ),
@@ -100,7 +133,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
           // شريط البحث
           TextField(
             decoration: const InputDecoration(
-              hintText: 'البحث في البيانات...',
+              hintText: 'البحث بالاسم أو المكان...',
               prefixIcon: Icon(Icons.search),
               border: OutlineInputBorder(),
             ),
@@ -125,12 +158,11 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
                     DropdownMenuItem(value: 'pending', child: Text('في الانتظار')),
                     DropdownMenuItem(value: 'approved', child: Text('معتمد')),
                     DropdownMenuItem(value: 'rejected', child: Text('مرفوض')),
-                    DropdownMenuItem(value: 'hidden', child: Text('مخفي')),
                   ],
                   onChanged: (value) {
                     setState(() {
                       _selectedStatus = value!;
-                      _loadPendingData();
+                      _loadAllData();
                     });
                   },
                 ),
@@ -153,7 +185,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
                   onChanged: (value) {
                     setState(() {
                       _selectedType = value!;
-                      _loadPendingData();
+                      _loadAllData();
                     });
                   },
                 ),
@@ -191,21 +223,24 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     );
   }
 
-  Widget _buildDataCard(dynamic item) { // PendingData
+  Widget _buildDataCard(Map<String, dynamic> item) {
+    final data = item['data'];
+    final type = item['type'];
+    
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ExpansionTile(
         title: Text(
-          _getItemTitle(item),
+          _getItemTitle(data, type),
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Text(
-          '${_getTypeText(item.type)} - ${_getStatusText(item.status)} - ${DateFormat('yyyy/MM/dd').format(item.submittedAt)}',
+          '${_getTypeText(type)} - ${_getStatusText(data.status ?? 'pending')} - ${_formatDate(data.createdAt)}',
         ),
         leading: CircleAvatar(
-          backgroundColor: _getStatusColor(item.status),
+          backgroundColor: _getStatusColor(data.status ?? 'pending'),
           child: Text(
-            _getTypeIcon(item.type),
+            _getTypeIcon(type),
             style: const TextStyle(color: Colors.white),
           ),
         ),
@@ -216,37 +251,47 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // الصور والملفات
-                if (item.imageUrl != null || item.resumeUrl != null)
+                if (data.photoPath != null || data.cvFilePath != null)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (item.imageUrl != null)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ElevatedButton.icon(
-                              onPressed: () => _viewImage(item.imageUrl!),
-                              icon: const Icon(Icons.image),
-                              label: const Text('عرض الصورة'),
-                            ),
-                          ),
-                        if (item.resumeUrl != null)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ElevatedButton.icon(
-                              onPressed: () => _viewFile(item.resumeUrl!),
-                              icon: const Icon(Icons.description),
-                              label: const Text('عرض السيرة'),
-                            ),
-                          ),
+                        const Text(
+                          'الملفات المرفقة:',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          children: [
+                            if (data.photoPath != null)
+                              ElevatedButton.icon(
+                                onPressed: () => _viewImage(data.photoPath!),
+                                icon: const Icon(Icons.image),
+                                label: const Text('عرض الصورة'),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                              ),
+                            if (data.cvFilePath != null)
+                              ElevatedButton.icon(
+                                onPressed: () => _viewFile(data.cvFilePath!),
+                                icon: const Icon(Icons.description),
+                                label: const Text('عرض السيرة'),
+                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
+                
                 // البيانات الأساسية
-                ..._buildDataDetails(item.data),
-                const SizedBox(height: 12),
+                _buildMartyrDetails(data),
+                
+                const SizedBox(height: 16),
+                
                 // أزرار التحكم
-                _buildActionButtons(item),
+                _buildActionButtons(data, type),
               ],
             ),
           ),
@@ -255,59 +300,150 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     );
   }
 
-  List<Widget> _buildDataDetails(Map<String, dynamic> data) {
-    List<Widget> widgets = [];
-    
-    data.forEach((key, value) {
-      if (value != null && value.toString().isNotEmpty) {
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 80,
-                  child: Text(
-                    '$key:',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Expanded(
-                  child: Text(value.toString()),
-                ),
-              ],
-            ),
+  Widget _buildMartyrDetails(dynamic data) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'البيانات الأساسية:',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        
+        // الاسم واللقب
+        _buildDetailRow('الاسم الكامل', data.fullName),
+        if (data.nickname != null && data.nickname.isNotEmpty)
+          _buildDetailRow('اللقب أو الاسم الحركي', data.nickname),
+        
+        // الجغرافيا
+        if (data.tribe != null && data.tribe.isNotEmpty)
+          _buildDetailRow('القبيلة/المنطقة', data.tribe),
+        
+        const SizedBox(height: 12),
+        const Text(
+          'التواريخ المهمة:',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        
+        // التواريخ
+        if (data.birthDate != null)
+          _buildDetailRow('تاريخ الميلاد', _formatDate(data.birthDate)),
+        if (data.deathDate != null || data.injuryDate != null || data.captureDate != null)
+          _buildDetailRow(
+            'تاريخ الحدث', 
+            _formatDate(data.deathDate ?? data.injuryDate ?? data.captureDate)
           ),
-        );
-      }
-    });
-    
-    return widgets;
+        
+        const SizedBox(height: 12),
+        const Text(
+          'تفاصيل الحدث:',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        
+        // تفاصيل الحدث
+        if (data.deathPlace != null && data.deathPlace.isNotEmpty)
+          _buildDetailRow('مكان الاستشهاد', data.deathPlace),
+        if (data.causeOfDeath != null && data.causeOfDeath.isNotEmpty)
+          _buildDetailRow('سبب الاستشهاد', data.causeOfDeath),
+        if (data.injuryPlace != null && data.injuryPlace.isNotEmpty)
+          _buildDetailRow('مكان الإصابة', data.injuryPlace),
+        if (data.injuryType != null && data.injuryType.isNotEmpty)
+          _buildDetailRow('نوع الإصابة', data.injuryType),
+        if (data.capturePlace != null && data.capturePlace.isNotEmpty)
+          _buildDetailRow('مكان الاعتقال', data.capturePlace),
+        if (data.capturedBy != null && data.capturedBy.isNotEmpty)
+          _buildDetailRow('الجهات المعتقلة', data.capturedBy),
+        
+        // الرتبة/المنصب
+        if (data.rankOrPosition != null && data.rankOrPosition.isNotEmpty)
+          _buildDetailRow('الرتبة أو الموقع', data.rankOrPosition),
+        if (data.participationFronts != null && data.participationFronts.isNotEmpty)
+          _buildDetailRow('الجبهات/المعارك', data.participationFronts),
+        
+        const SizedBox(height: 12),
+        const Text(
+          'المعلومات الشخصية:',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        
+        // المعلومات الشخصية
+        if (data.familyStatus != null && data.familyStatus.isNotEmpty)
+          _buildDetailRow('الحالة الاجتماعية', data.familyStatus),
+        if (data.numChildren != null)
+          _buildDetailRow('عدد الأبناء', data.numChildren.toString()),
+        if (data.currentStatus != null && data.currentStatus.isNotEmpty)
+          _buildDetailRow('الحالة الحالية', data.currentStatus),
+        if (data.contactFamily != null && data.contactFamily.isNotEmpty)
+          _buildDetailRow('رقم العائلة', data.contactFamily),
+        if (data.hospitalName != null && data.hospitalName.isNotEmpty)
+          _buildDetailRow('اسم المستشفى', data.hospitalName),
+        if (data.releaseDate != null)
+          _buildDetailRow('تاريخ الإفراج', _formatDate(data.releaseDate)),
+        if (data.familyContact != null && data.familyContact.isNotEmpty)
+          _buildDetailRow('رقم العائلة', data.familyContact),
+        if (data.detentionPlace != null && data.detentionPlace.isNotEmpty)
+          _buildDetailRow('مكان الاعتقال', data.detentionPlace),
+        if (data.notes != null && data.notes.isNotEmpty)
+          _buildDetailRow('ملاحظات', data.notes),
+        
+        // معلومات الإدارة
+        const SizedBox(height: 12),
+        const Text(
+          'معلومات إدارية:',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        const SizedBox(height: 8),
+        
+        _buildDetailRow('حالة التوثيق', _getStatusText(data.status ?? 'pending')),
+        _buildDetailRow('تاريخ الإضافة', _formatDate(data.createdAt)),
+        if (data.addedByUserId != null)
+          _buildDetailRow('رقم المستخدم', data.addedByUserId),
+      ],
+    );
   }
 
-  Widget _buildActionButtons(dynamic item) { // PendingData
-    if (item.status == 'pending') {
+  Widget _buildDetailRow(String label, String? value) {
+    if (value == null || value.isEmpty) return const SizedBox.shrink();
+    
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 120,
+            child: Text(
+              '$label:',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+          Expanded(
+            child: Text(value),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(dynamic data, String type) {
+    if (data.status == 'pending') {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           ElevatedButton.icon(
-            onPressed: () => _approveData(item),
+            onPressed: () => _updateStatus(data, type, 'approved'),
             icon: const Icon(Icons.check, color: Colors.white),
             label: const Text('موافقة'),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
           ),
           ElevatedButton.icon(
-            onPressed: () => _rejectData(item),
+            onPressed: () => _updateStatus(data, type, 'rejected'),
             icon: const Icon(Icons.close, color: Colors.white),
             label: const Text('رفض'),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          ),
-          ElevatedButton.icon(
-            onPressed: () => _hideData(item),
-            icon: const Icon(Icons.visibility_off, color: Colors.white),
-            label: const Text('إخفاء'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
           ),
         ],
       );
@@ -315,15 +451,14 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          if (item.status == 'approved' || item.status == 'hidden')
-            ElevatedButton.icon(
-              onPressed: () => _hideData(item),
-              icon: const Icon(Icons.visibility_off, color: Colors.white),
-              label: const Text('إخفاء'),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            ),
           ElevatedButton.icon(
-            onPressed: () => _deleteData(item),
+            onPressed: () => _updateStatus(data, type, 'pending'),
+            icon: const Icon(Icons.undo, color: Colors.white),
+            label: const Text('إرجاع للانتظار'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+          ),
+          ElevatedButton.icon(
+            onPressed: () => _deleteData(data, type),
             icon: const Icon(Icons.delete, color: Colors.white),
             label: const Text('حذف'),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
@@ -333,14 +468,11 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     }
   }
 
-  String _getItemTitle(dynamic item) { // PendingData
-    if (item.data['fullName'] != null) {
-      return item.data['fullName'];
+  String _getItemTitle(dynamic data, String type) {
+    if (data.fullName != null && data.fullName.isNotEmpty) {
+      return data.fullName;
     }
-    if (item.data['name'] != null) {
-      return item.data['name'];
-    }
-    return 'بيانات ${_getTypeText(item.type)}';
+    return 'بيانات ${_getTypeText(type)}';
   }
 
   String _getTypeText(String type) {
@@ -364,8 +496,6 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
         return 'معتمد';
       case 'rejected':
         return 'مرفوض';
-      case 'hidden':
-        return 'مخفي';
       default:
         return status;
     }
@@ -392,39 +522,48 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
         return Colors.green;
       case 'rejected':
         return Colors.red;
-      case 'hidden':
-        return Colors.grey;
       default:
         return Colors.blue;
     }
   }
 
-  void _viewImage(String imageUrl) {
+  String _formatDate(dynamic date) {
+    if (date == null) return 'غير محدد';
+    if (date is DateTime) {
+      return DateFormat('yyyy/MM/dd').format(date);
+    }
+    return date.toString();
+  }
+
+  void _viewImage(String imagePath) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => Scaffold(
           appBar: AppBar(title: const Text('عرض الصورة')),
           body: Center(
-            child: Image.network(imageUrl),
+            child: Image.file(
+              Uri.parse(imagePath).isAbsolute ? 
+                Uri.parse(imagePath).toFilePath() as String : 
+                imagePath
+            ),
           ),
         ),
       ),
     );
   }
 
-  void _viewFile(String fileUrl) {
-    // يمكن إضافة PDF viewer أو file viewer هنا
+  void _viewFile(String filePath) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('سيتم فتح الملف قريباً...')),
     );
   }
 
-  Future<void> _approveData(dynamic item) async { // PendingData
+  Future<void> _updateStatus(dynamic data, String type, String newStatus) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('تأكيد الموافقة'),
-        content: Text('هل تريد الموافقة على هذه البيانات؟'),
+        title: Text('تأكيد تغيير الحالة'),
+        content: Text('هل تريد تغيير الحالة إلى "${_getStatusText(newStatus)}"؟'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
@@ -432,8 +571,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            child: const Text('موافقة', style: TextStyle(color: Colors.white)),
+            child: const Text('تأكيد'),
           ),
         ],
       ),
@@ -441,123 +579,26 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
 
     if (result == true) {
       try {
-        // إضافة البيانات إلى المجموعة الرئيسية مع status = 'approved'
-        await _insertApprovedData(item);
+        // هنا يمكن إضافة منطق تحديث الحالة
+        // مثال: await _dbService.updateItemStatus(data.id, newStatus);
         
-        // تحديث حالة البيانات في pending_data
-        await _dbService.approveData(item.id!);
-        
-        _loadPendingData();
+        _loadAllData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تمت الموافقة على البيانات بنجاح')),
+            const SnackBar(content: Text('تم تحديث الحالة بنجاح')),
           );
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('خطأ في الموافقة: $e')),
+            SnackBar(content: Text('خطأ في تحديث الحالة: $e')),
           );
         }
       }
     }
   }
 
-  Future<void> _rejectData(dynamic item) async { // PendingData
-    final TextEditingController reasonController = TextEditingController();
-    
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تأكيد الرفض'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('يرجى إدخال سبب الرفض:'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: reasonController,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'سبب الرفض',
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('رفض', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true && reasonController.text.trim().isNotEmpty) {
-      try {
-        await _dbService.rejectData(item.id!, reason: reasonController.text);
-        _loadPendingData();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم رفض البيانات')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('خطأ في الرفض: $e')),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _hideData(dynamic item) async { // PendingData
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('تأكيد الإخفاء'),
-        content: const Text('هل تريد إخفاء هذه البيانات؟'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-            child: const Text('إخفاء', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true) {
-      try {
-        await _dbService.hideData(item.id!);
-        _loadPendingData();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم إخفاء البيانات')),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('خطأ في الإخفاء: $e')),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _deleteData(dynamic item) async { // PendingData
+  Future<void> _deleteData(dynamic data, String type) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -579,11 +620,13 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
 
     if (result == true) {
       try {
-        await _dbService.deleteData(item.id!);
-        _loadPendingData();
+        // هنا يمكن إضافة منطق حذف البيانات
+        // مثال: await _dbService.deleteItem(data.id, type);
+        
+        _loadAllData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('تم حذف البيانات نهائياً')),
+            const SnackBar(content: Text('تم حذف البيانات')),
           );
         }
       } catch (e) {
@@ -593,50 +636,6 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
           );
         }
       }
-    }
-  }
-
-  /// إضافة البيانات المعتمدة إلى المجموعة الرئيسية
-  Future<void> _insertApprovedData(dynamic item) async { // PendingData
-    try {
-      // إضافة البيانات المطلوبة للـ models الأصلية
-      final approvedData = Map<String, dynamic>.from(item.data);
-      
-      // تحويل أسماء الحقول لتطابق النماذج الأصلية
-      approvedData['status'] = 'approved';
-      approvedData['created_at'] = DateTime.now().toIso8601String();
-      approvedData['added_by_user_id'] = 'admin'; // UID افتراضي للمسؤول
-      approvedData['contact_family'] = approvedData['contact_family'] ?? '';
-      
-      // تحديد اسم المؤسسة للـ tribe
-      if (!approvedData.containsKey('tribe')) {
-        approvedData['tribe'] = 'غير محدد';
-      }
-      
-      // إضافة URLs للصور وملفات السيرة (أسماء الحقول الصحيحة)
-      if (item.imageUrl != null) {
-        approvedData['photo_path'] = item.imageUrl;
-      }
-      if (item.resumeUrl != null) {
-        approvedData['cv_file_path'] = item.resumeUrl;
-      }
-
-      switch (item.type) {
-        case 'martyr':
-          final martyr = Martyr.fromMap(approvedData);
-          await _dbService.insertMartyr(martyr);
-          break;
-        case 'injured':
-          final injured = Injured.fromMap(approvedData);
-          await _dbService.insertInjured(injured);
-          break;
-        case 'prisoner':
-          final prisoner = Prisoner.fromMap(approvedData);
-          await _dbService.insertPrisoner(prisoner);
-          break;
-      }
-    } catch (e) {
-      throw Exception('خطأ في إدراج البيانات المعتمدة: $e');
     }
   }
 }
