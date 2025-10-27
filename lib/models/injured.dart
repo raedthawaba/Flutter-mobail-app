@@ -169,11 +169,6 @@ class Injured extends Equatable {
       id: data['id'],
       fullName: data['fullName'] ?? '',
       tribe: data['tribe'] ?? '',
-      birthDate: data['birthDate'] != null 
-          ? (data['birthDate'] is String 
-              ? DateTime.parse(data['birthDate']) 
-              : DateTime.fromMillisecondsSinceEpoch(data['birthDate']))
-          : null,
       injuryDate: data['injuryDate'] != null 
           ? (data['injuryDate'] is String 
               ? DateTime.parse(data['injuryDate']) 
@@ -181,10 +176,10 @@ class Injured extends Equatable {
           : DateTime.now(),
       injuryPlace: data['injuryPlace'] ?? '',
       injuryType: data['injuryType'] ?? '',
-      causeOfInjury: data['causeOfInjury'] ?? '',
-      severityLevel: data['severityLevel'] ?? '',
-      currentMedicalCondition: data['currentMedicalCondition'] ?? '',
-      treatmentLocation: data['treatmentLocation'] ?? '',
+      injuryDescription: data['injuryDescription'] ?? '',
+      injuryDegree: data['injuryDegree'] ?? '',
+      currentStatus: data['currentStatus'] ?? '',
+      hospitalName: data['hospitalName'],
       contactFamily: data['contactFamily'] ?? '',
       addedByUserId: data['addedByUserId'] ?? '',
       photoPath: data['photoPath'],
