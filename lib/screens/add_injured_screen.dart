@@ -211,42 +211,27 @@ class _AddInjuredScreenState extends State<AddInjuredScreen> {
         throw Exception('خطأ في تحديد المستخدم');
       }
 
-      // تحضير البيانات للإرسال
-      final injuredData = {
-        'fullName': _fullNameController.text.trim(),
-        'tribe': _tribeController.text.trim(),
-        'injuryDate': _injuryDate!.toIso8601String(),
-        'injuryPlace': _injuryPlaceController.text.trim(),
-        'injuryType': _injuryTypeController.text.trim(),
-        'injuryDescription': _injuryDescriptionController.text.trim(),
-        'injuryDegree': _selectedInjuryDegree!,
-        'currentStatus': _currentStatusController.text.trim(),
-        'hospitalName': _hospitalNameController.text.trim().isEmpty ? null : _hospitalNameController.text.trim(),
-        'contactFamily': _contactFamilyController.text.trim(),
-        'addedByUserId': userId,
-        'status': AppConstants.statusPending,
-        'createdAt': DateTime.now().toIso8601String(),
-      };
-
-      // إرسال الصورة والسيرة
-      String? imageUrl;
-      String? resumeUrl;
-      
-      if (_photoFile != null) {
-        imageUrl = _photoFile!.path;
-      }
-      
-      if (_cvFile != null) {
-        resumeUrl = _cvFile!.path;
-      }
-
-      // إرسال البيانات للمراجعة
-      await FirebaseDatabaseService().submitDataForReview(
-        type: 'injured',
-        data: injuredData,
-        imageUrl: imageUrl,
-        resumeUrl: resumeUrl,
+      // إنشاء Injured object
+      final injured = Injured(
+        fullName: _fullNameController.text.trim(),
+        tribe: _tribeController.text.trim(),
+        injuryDate: _injuryDate!,
+        injuryPlace: _injuryPlaceController.text.trim(),
+        injuryType: _injuryTypeController.text.trim(),
+        injuryDescription: _injuryDescriptionController.text.trim(),
+        injuryDegree: _selectedInjuryDegree!,
+        currentStatus: _currentStatusController.text.trim(),
+        hospitalName: _hospitalNameController.text.trim().isEmpty ? null : _hospitalNameController.text.trim(),
+        contactFamily: _contactFamilyController.text.trim(),
+        addedByUserId: userId,
+        photoPath: _photoFile?.path,
+        cvFilePath: _cvFile?.path,
+        status: AppConstants.statusPending,
+        createdAt: DateTime.now(),
       );
+
+      // إدراج الجريح مباشرة
+      await FirebaseDatabaseService().insertInjured(injured);
 
       _showSuccessMessage('تم إرسال بيانات الجريح بنجاح! سيتم مراجعتها من قبل المسؤول قبل التوثيق النهائي.');
 

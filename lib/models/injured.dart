@@ -167,34 +167,46 @@ class Injured extends Equatable {
   factory Injured.fromFirestore(Map<String, dynamic> data) {
     return Injured(
       id: data['id'],
-      fullName: data['fullName'] ?? '',
+      fullName: data['full_name'] ?? data['fullName'] ?? '',
       tribe: data['tribe'] ?? '',
-      injuryDate: data['injuryDate'] != null 
-          ? (data['injuryDate'] is String 
-              ? DateTime.parse(data['injuryDate']) 
-              : DateTime.fromMillisecondsSinceEpoch(data['injuryDate']))
+      injuryDate: data['injury_date'] != null || data['injuryDate'] != null
+          ? (data['injury_date'] != null ? 
+              (data['injury_date'] is String 
+                  ? DateTime.parse(data['injury_date']) 
+                  : DateTime.fromMillisecondsSinceEpoch(data['injury_date'])) :
+              (data['injuryDate'] is String 
+                  ? DateTime.parse(data['injuryDate']) 
+                  : DateTime.fromMillisecondsSinceEpoch(data['injuryDate'])))
           : DateTime.now(),
-      injuryPlace: data['injuryPlace'] ?? '',
-      injuryType: data['injuryType'] ?? '',
-      injuryDescription: data['injuryDescription'] ?? '',
-      injuryDegree: data['injuryDegree'] ?? '',
-      currentStatus: data['currentStatus'] ?? '',
-      hospitalName: data['hospitalName'],
-      contactFamily: data['contactFamily'] ?? '',
-      addedByUserId: data['addedByUserId'] ?? '',
-      photoPath: data['photoPath'],
-      cvFilePath: data['cvFilePath'],
+      injuryPlace: data['injury_place'] ?? data['injuryPlace'] ?? '',
+      injuryType: data['injury_type'] ?? data['injuryType'] ?? '',
+      injuryDescription: data['injury_description'] ?? data['injuryDescription'] ?? '',
+      injuryDegree: data['injury_degree'] ?? data['injuryDegree'] ?? '',
+      currentStatus: data['current_status'] ?? data['currentStatus'] ?? '',
+      hospitalName: data['hospital_name'] ?? data['hospitalName'],
+      contactFamily: data['contact_family'] ?? data['contactFamily'] ?? '',
+      addedByUserId: data['added_by_user_id'] ?? data['addedByUserId'] ?? '',
+      photoPath: data['photo_path'] ?? data['photoPath'],
+      cvFilePath: data['cv_file_path'] ?? data['cvFilePath'],
       status: data['status'] ?? AppConstants.statusPending,
-      adminNotes: data['adminNotes'],
-      createdAt: data['createdAt'] != null 
-          ? (data['createdAt'] is String 
-              ? DateTime.parse(data['createdAt']) 
-              : DateTime.fromMillisecondsSinceEpoch(data['createdAt']))
+      adminNotes: data['admin_notes'] ?? data['adminNotes'],
+      createdAt: data['created_at'] != null || data['createdAt'] != null
+          ? (data['created_at'] != null ? 
+              (data['created_at'] is String 
+                  ? DateTime.parse(data['created_at']) 
+                  : DateTime.fromMillisecondsSinceEpoch(data['created_at'])) :
+              (data['createdAt'] is String 
+                  ? DateTime.parse(data['createdAt']) 
+                  : DateTime.fromMillisecondsSinceEpoch(data['createdAt'])))
           : DateTime.now(),
-      updatedAt: data['updatedAt'] != null 
-          ? (data['updatedAt'] is String 
-              ? DateTime.parse(data['updatedAt']) 
-              : DateTime.fromMillisecondsSinceEpoch(data['updatedAt']))
+      updatedAt: data['updated_at'] != null || data['updatedAt'] != null
+          ? (data['updated_at'] != null ? 
+              (data['updated_at'] is String 
+                  ? DateTime.parse(data['updated_at']) 
+                  : DateTime.fromMillisecondsSinceEpoch(data['updated_at'])) :
+              (data['updatedAt'] is String 
+                  ? DateTime.parse(data['updatedAt']) 
+                  : DateTime.fromMillisecondsSinceEpoch(data['updatedAt'])))
           : null,
     );
   }
@@ -202,25 +214,25 @@ class Injured extends Equatable {
   // Method to convert to Firestore map
   Map<String, dynamic> toFirestore() {
     final data = <String, dynamic>{
-      'fullName': fullName,
+      'full_name': fullName,
       'tribe': tribe,
-      'injuryDate': injuryDate.millisecondsSinceEpoch,
-      'injuryPlace': injuryPlace,
-      'injuryType': injuryType,
-      'injuryDescription': injuryDescription,
-      'injuryDegree': injuryDegree,
-      'currentStatus': currentStatus,
-      'contactFamily': contactFamily,
-      'addedByUserId': addedByUserId,
+      'injury_date': injuryDate.millisecondsSinceEpoch,
+      'injury_place': injuryPlace,
+      'injury_type': injuryType,
+      'injury_description': injuryDescription,
+      'injury_degree': injuryDegree,
+      'current_status': currentStatus,
+      'contact_family': contactFamily,
+      'added_by_user_id': addedByUserId,
       'status': status,
-      'createdAt': createdAt.millisecondsSinceEpoch,
+      'created_at': createdAt.millisecondsSinceEpoch,
     };
     
-    if (hospitalName != null) data['hospitalName'] = hospitalName;
-    if (photoPath != null) data['photoPath'] = photoPath;
-    if (cvFilePath != null) data['cvFilePath'] = cvFilePath;
-    if (adminNotes != null) data['adminNotes'] = adminNotes;
-    if (updatedAt != null) data['updatedAt'] = updatedAt!.millisecondsSinceEpoch;
+    if (hospitalName != null) data['hospital_name'] = hospitalName;
+    if (photoPath != null) data['photo_path'] = photoPath;
+    if (cvFilePath != null) data['cv_file_path'] = cvFilePath;
+    if (adminNotes != null) data['admin_notes'] = adminNotes;
+    if (updatedAt != null) data['updated_at'] = updatedAt!.millisecondsSinceEpoch;
     
     return data;
   }

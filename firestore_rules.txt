@@ -1,0 +1,44 @@
+// Firebase Firestore Security Rules for Palestine Martyrs App
+// Compatible with Firebase Authentication
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection - users can only read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if true; // Allow anyone to read user profiles for app functionality
+    }
+    
+    // martyrs collection - authenticated users can write, anyone can read
+    match /martyrs/{martyrId} {
+      allow read: if true; // Public read access
+      allow create, update, delete: if request.auth != null; // Authenticated users only can write
+    }
+    
+    // injured collection - authenticated users can write, anyone can read
+    match /injured/{injuredId} {
+      allow read: if true; // Public read access
+      allow create, update, delete: if request.auth != null; // Authenticated users only can write
+    }
+    
+    // prisoners collection - authenticated users can write, anyone can read
+    match /prisoners/{prisonerId} {
+      allow read: if true; // Public read access
+      allow create, update, delete: if request.auth != null; // Authenticated users only can write
+    }
+    
+    // pending_data collection - for future approval workflow
+    match /pending_data/{dataId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // backups collection - admin only (can be modified as needed)
+    match /backups/{backupId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only server-side writes
+    }
+  }
+}

@@ -39,9 +39,15 @@ class AppConstants {
   static const String tablePrisoners = 'prisoners';
   
   // حالات السجلات
-  static const String statusPending = 'قيد المراجعة';
-  static const String statusApproved = 'تم التوثيق';
-  static const String statusRejected = 'مرفوض';
+  static const String statusPending = 'pending';
+  static const String statusApproved = 'approved';
+  static const String statusRejected = 'rejected';
+  static const String statusHidden = 'hidden';
+  
+  // حالات السجلات بالعربية للعرض
+  static const String statusPendingArabic = 'قيد المراجعة';
+  static const String statusApprovedArabic = 'تم التوثيق';
+  static const String statusRejectedArabic = 'مرفوض';
   
   // درجات الإصابة
   static const List<String> injuryDegrees = [

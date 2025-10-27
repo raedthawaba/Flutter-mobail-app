@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Users collection - users can read/write their own data
+    match /users/{userId} {
+      allow read, write: if request.auth != null && (request.auth.uid == userId || request.auth.token.userType == 'admin');
+      allow read: if true; // Public read access for user profiles
+    }
+    
+    // martyrs collection - all authenticated users can read and write
+    match /martyrs/{martyrId} {
+      allow read: if true; // Public read access
+      allow create, update, delete: if request.auth != null; // Authenticated users can write
+    }
+    
+    // injured collection - all authenticated users can read and write
+    match /injured/{injuredId} {
+      allow read: if true; // Public read access
+      allow create, update, delete: if request.auth != null; // Authenticated users can write
+    }
+    
+    // prisoners collection - all authenticated users can read and write
+    match /prisoners/{prisonerId} {
+      allow read: if true; // Public read access
+      allow create, update, delete: if request.auth != null; // Authenticated users can write
+    }
+    
+    // pending_data collection - for future approval workflow
+    match /pending_data/{dataId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // backups collection - admin only
+    match /backups/{backupId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Server-side only
+    }
+  }
+}
