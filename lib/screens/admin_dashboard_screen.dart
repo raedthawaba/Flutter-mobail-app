@@ -5,7 +5,7 @@ import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
 import '../services/database_service.dart';
 import '../services/firebase_database_service.dart';
-import '../utils/sample_data_generator.dart';
+// removed: import '../utils/sample_data_generator.dart';
 import 'login_screen.dart';
 import 'admin_martyrs_management_screen.dart';
 import 'admin_injured_management_screen.dart';
@@ -31,12 +31,12 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
-  final SampleDataGenerator _sampleDataGenerator = SampleDataGenerator();
+  // removed: final SampleDataGenerator _sampleDataGenerator = SampleDataGenerator();
   
   String? _adminName;
   Map<String, int> _statistics = {};
   bool _isLoading = true;
-  bool _isGeneratingData = false;
+  // removed: bool _isGeneratingData = false;
 
   @override
   void initState() {
@@ -102,66 +102,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
-  Future<void> _generateSampleData() async {
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('توليد البيانات التجريبية'),
-        content: const Text(
-          'سيتم توليد 50 شهيد، 75 جريح، و30 أسير كبيانات تجريبية. '
-          'هل تريد المتابعة؟',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('إلغاء'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryColor,
-            ),
-            child: const Text('توليد البيانات'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      setState(() {
-        _isGeneratingData = true;
-      });
-
-      try {
-        await _sampleDataGenerator.generateSampleData();
-        await _loadDashboardData(); // تحديث البيانات
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('تم توليد البيانات التجريبية بنجاح'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('خطأ في توليد البيانات: $e'),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() {
-            _isGeneratingData = false;
-          });
-        }
-      }
-    }
-  }
+  // removed: _generateSampleData() function
 
   void _navigateToManagement(String section) {
     Widget? targetScreen;
@@ -569,78 +510,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
                       const SizedBox(height: 32),
 
-                      // زر توليد البيانات التجريبية
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.orange.withOpacity(0.3),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.dataset,
-                              size: 48,
-                              color: Colors.orange,
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'توليد بيانات تجريبية',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            const Text(
-                              'إنشاء بيانات تجريبية للاختبار (50 شهيد، 75 جريح، 30 أسير)',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.orange,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _isGeneratingData ? null : _generateSampleData,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 32,
-                                  vertical: 12,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(25),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: _isGeneratingData
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : const Text(
-                                      'توليد البيانات',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                            ),
-                          ],
-                        ),
-                      ),
+                      // removed: test data generation card
 
                       const SizedBox(height: 32),
 
