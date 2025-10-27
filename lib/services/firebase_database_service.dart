@@ -940,15 +940,4 @@ class FirebaseDatabaseService {
     print('⚠️ deleteData: Function temporarily disabled during build');
     throw Exception('وظيفة الحذف معطلة مؤقتاً أثناء البناء');
   }
-
-  /// إرسال بيانات للمراجعة - مؤقت
-  Future<String> submitDataForReview({
-    required String type,
-    required Map<String, dynamic> data,
-    String? imageUrl,
-    String? resumeUrl,
-  }) async {
-    print('⚠️ submitDataForReview: Function temporarily disabled during build');
-    throw Exception('وظيفة الإرسال للمراجعة معطلة مؤقتاً أثناء البناء');
-  }
 }
