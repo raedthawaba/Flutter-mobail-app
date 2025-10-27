@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // عام: السماح بالقراءة والكتابة للمستخدمين المصادق عليهم
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // تحديد: قواعد إضافية لحماية أكثر
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == userId;
+    }
+    
+    // للشهداء - السماح بالقراءة للجميع، الكتابة للمصادق عليهم فقط
+    match /martyrs/{martyrId} {
+      allow read: if true; // السماح بالقراءة للجميع
+      allow write: if request.auth != null; // الكتابة للمصادق عليهم فقط
+    }
+    
+    // للجرحى
+    match /injured/{injuredId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // للأسرى
+    match /prisoners/{prisonerId} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // للبيانات المعلقة - للإداريين فقط
+    match /pending_data/{pendingId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
