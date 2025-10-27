@@ -571,8 +571,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
     return Card(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       elevation: 4,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+      child: GestureDetector(
         onTap: () => _viewDetails(type, id),
         child: Container(
           padding: const EdgeInsets.all(16),
@@ -633,7 +632,6 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                     overflow: TextOverflow.ellipsis,
                   );
                 },
-              ),
               ),
               const SizedBox(height: 8),
               FutureBuilder<String>(

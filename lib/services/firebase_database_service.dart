@@ -1750,6 +1750,22 @@ class FirebaseDatabaseService {
     }
   }
 
+  /// حذف المستخدم باستخدام uid
+  Future<void> deleteUserByUid(String uid) async {
+    try {
+      final querySnapshot = await _usersCollection
+          .where('uid', isEqualTo: uid)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        await querySnapshot.docs.first.reference.delete();
+      }
+    } catch (e) {
+      throw Exception('خطأ في حذف المستخدم: $e');
+    }
+  }
+
   /// دالة موحدة لجلب جميع البيانات المعتمدة (للاستخدام في شاشة التصفح)
   Future<List<dynamic>> getAllApprovedData(String dataType) async {
     switch (dataType) {
