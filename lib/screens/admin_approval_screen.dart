@@ -51,12 +51,12 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     }
   }
 
-  List<PendingData> get _filteredData {
-    List<PendingData> filtered = _pendingData;
+  List<dynamic> get _filteredData {
+    List<dynamic> filtered = _pendingData;
     
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((item) {
-        final data = item.data.toString().toLowerCase();
+        final data = item.toString().toLowerCase();
         return data.contains(_searchQuery.toLowerCase());
       }).toList();
     }
@@ -191,7 +191,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     );
   }
 
-  Widget _buildDataCard(PendingData item) {
+  Widget _buildDataCard(dynamic item) { // PendingData
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: ExpansionTile(
@@ -286,7 +286,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     return widgets;
   }
 
-  Widget _buildActionButtons(PendingData item) {
+  Widget _buildActionButtons(dynamic item) { // PendingData
     if (item.status == 'pending') {
       return Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -333,7 +333,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     }
   }
 
-  String _getItemTitle(PendingData item) {
+  String _getItemTitle(dynamic item) { // PendingData
     if (item.data['fullName'] != null) {
       return item.data['fullName'];
     }
@@ -597,7 +597,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
   }
 
   /// إضافة البيانات المعتمدة إلى المجموعة الرئيسية
-  Future<void> _insertApprovedData(PendingData item) async {
+  Future<void> _insertApprovedData(dynamic item) async { // PendingData
     try {
       // إضافة البيانات المطلوبة للـ models الأصلية
       final approvedData = Map<String, dynamic>.from(item.data);
