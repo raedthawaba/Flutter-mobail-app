@@ -223,47 +223,29 @@ class _AddMartyrScreenState extends State<AddMartyrScreen> {
         throw Exception('خطأ في تحديد المستخدم');
       }
 
-      // تحضير البيانات للإرسال
-      final martyrData = {
-        'fullName': _fullNameController.text.trim(),
-        'nickname': _nicknameController.text.trim().isEmpty ? null : _nicknameController.text.trim(),
-        'tribe': _tribeController.text.trim(),
-        'birthDate': _birthDate?.toIso8601String(),
-        'deathDate': _deathDate!.toIso8601String(),
-        'deathPlace': _deathPlaceController.text.trim(),
-        'causeOfDeath': _causeOfDeathController.text.trim(),
-        'rankOrPosition': _rankOrPositionController.text.trim().isEmpty ? null : _rankOrPositionController.text.trim(),
-        'participationFronts': _participationFrontsController.text.trim().isEmpty ? null : _participationFrontsController.text.trim(),
-        'familyStatus': _familyStatusController.text.trim().isEmpty ? null : _familyStatusController.text.trim(),
-        'numChildren': _numChildrenController.text.trim().isEmpty ? null : int.tryParse(_numChildrenController.text.trim()),
-        'contactFamily': _contactFamilyController.text.trim(),
-        'addedByUserId': userId,
-        'status': AppConstants.statusPending,
-        'createdAt': DateTime.now().toIso8601String(),
-      };
-
-      // إرسال الصورة والسيرة (في التطبيق الحقيقي، ستتم رفع الملفات للسحابة)
-      String? imageUrl;
-      String? resumeUrl;
-      
-      if (_photoFile != null) {
-        // هنا سيتم رفع الصورة للسحابة وارجاع الرابط
-        // للآن سنستخدم المسار المحلي
-        imageUrl = _photoFile!.path;
-      }
-      
-      if (_cvFile != null) {
-        // هنا سيتم رفع السيرة للسحابة وارجاع الرابط
-        resumeUrl = _cvFile!.path;
-      }
-
-      // إرسال البيانات للمراجعة
-      await FirebaseDatabaseService().submitDataForReview(
-        type: 'martyr',
-        data: martyrData,
-        imageUrl: imageUrl,
-        resumeUrl: resumeUrl,
+      // إنشاء Martyr object
+      final martyr = Martyr(
+        fullName: _fullNameController.text.trim(),
+        nickname: _nicknameController.text.trim().isEmpty ? null : _nicknameController.text.trim(),
+        tribe: _tribeController.text.trim(),
+        birthDate: _birthDate,
+        deathDate: _deathDate!,
+        deathPlace: _deathPlaceController.text.trim(),
+        causeOfDeath: _causeOfDeathController.text.trim(),
+        rankOrPosition: _rankOrPositionController.text.trim().isEmpty ? null : _rankOrPositionController.text.trim(),
+        participationFronts: _participationFrontsController.text.trim().isEmpty ? null : _participationFrontsController.text.trim(),
+        familyStatus: _familyStatusController.text.trim().isEmpty ? null : _familyStatusController.text.trim(),
+        numChildren: _numChildrenController.text.trim().isEmpty ? null : int.tryParse(_numChildrenController.text.trim()),
+        contactFamily: _contactFamilyController.text.trim(),
+        addedByUserId: userId,
+        photoPath: _photoFile?.path,
+        cvFilePath: _cvFile?.path,
+        status: AppConstants.statusPending,
+        createdAt: DateTime.now(),
       );
+
+      // إدراج الشهيد مباشرة
+      await FirebaseDatabaseService().insertMartyr(martyr);
 
       _showSuccessMessage('تم إرسال بيانات الشهيد بنجاح! سيتم مراجعتها من قبل المسؤول قبل التوثيق النهائي.');
 
