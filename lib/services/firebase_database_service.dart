@@ -21,6 +21,7 @@ class FirebaseDatabaseService {
   CollectionReference get _martyrsCollection => _firestore.collection('martyrs');
   CollectionReference get _injuredCollection => _firestore.collection('injured');
   CollectionReference get _prisonersCollection => _firestore.collection('prisoners');
+  CollectionReference get _pendingDataCollection => _firestore.collection('pending_data');
   
   // ===== دوال المستخدمين =====
 

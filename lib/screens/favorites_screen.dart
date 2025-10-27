@@ -649,9 +649,10 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                         color: color,
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+                      ),
+                    ),
+                  );
+                },
             ],
           ),
         ),
