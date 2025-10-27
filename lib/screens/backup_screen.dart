@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../services/backup_service.dart';
+import '../services/firebase_database_service.dart';
 
 class BackupScreen extends StatefulWidget {
   const BackupScreen({Key? key}) : super(key: key);
@@ -1095,6 +1097,32 @@ class _BackupScreenState extends State<BackupScreen>
 
   // الوظائف الأساسية
 
+  /// حفظ النسخة الاحتياطية كملف JSON في الجهاز
+  Future<void> _saveBackupToFile(Map<String, dynamic> backupData, bool includeImages) async {
+    try {
+      // إنشاء بيانات النسخة الاحتياطية
+      final jsonData = jsonEncode(backupData);
+      
+      // الحصول على مجلد التطبيق
+      final directory = await getApplicationDocumentsDirectory();
+      final fileName = 'backup_${DateTime.now().millisecondsSinceEpoch}.json';
+      final file = File('${directory.path}/$fileName');
+      
+      // حفظ الملف
+      await file.writeAsString(jsonData);
+      
+      print('تم حفظ النسخة الاحتياطية في: ${file.path}');
+      
+      // إضافة معلومات الملف إلى بيانات النسخة الاحتياطية
+      backupData['file_path'] = file.path;
+      backupData['file_name'] = fileName;
+      
+    } catch (e) {
+      print('خطأ في حفظ الملف: $e');
+      throw Exception('فشل حفظ النسخة الاحتياطية: $e');
+    }
+  }
+
   Future<void> _createBackup(bool includeImages) async {
     if (_isCreatingBackup) return;
 
@@ -1103,8 +1131,11 @@ class _BackupScreenState extends State<BackupScreen>
     });
 
     try {
-      // في التطبيق الحقيقي، ستحتاج لاستدعاء خدمة النسخ الاحتياطي
-      await Future.delayed(const Duration(seconds: 3)); // محاكاة عملية النسخ
+      // استدعاء خدمة النسخ الاحتياطي الحقيقية
+      final backupData = await _backupService.createBackup();
+      
+      // حفظ النسخة الاحتياطية كملف JSON في الجهاز
+      await _saveBackupToFile(backupData, includeImages);
       
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

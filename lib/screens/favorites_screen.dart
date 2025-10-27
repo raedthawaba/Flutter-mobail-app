@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../services/favorites_service.dart';
+import '../services/firebase_database_service.dart';
+import '../models/martyr.dart';
+import '../models/injured.dart';
+import '../models/prisoner.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({Key? key}) : super(key: key);
@@ -15,6 +20,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
     with TickerProviderStateMixin {
   
   late TabController _tabController;
+  final FirebaseDatabaseService _dbService = FirebaseDatabaseService();
   
   // البيانات
   Map<String, int> _favoritesCount = {};
@@ -407,8 +413,21 @@ class _FavoritesScreenState extends State<FavoritesScreen>
             color: Colors.white,
           ),
         ),
-        title: Text(_getSampleName(id)),
-        subtitle: Text(_getSampleLocation(id)),
+        title: FutureBuilder<String>(
+          future: _getRealName(id, type),
+          builder: (context, snapshot) {
+            return Text(
+              snapshot.data ?? 'جاري التحميل...',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            );
+          },
+        ),
+        subtitle: FutureBuilder<String>(
+          future: _getRealLocation(id, type),
+          builder: (context, snapshot) {
+            return Text(snapshot.data ?? 'جاري التحميل...');
+          },
+        ),
         trailing: IconButton(
           icon: const Icon(Icons.remove_circle, color: Colors.red),
           onPressed: () => _removeFromFavorites(type, id),
@@ -420,8 +439,9 @@ class _FavoritesScreenState extends State<FavoritesScreen>
   }
 
   Widget _buildListView(List<String> items, String type, IconData icon, Color color) {
+    // للآن البحث يعمل على المعرفات فقط
     List<String> filteredItems = items.where((id) => 
-      _searchQuery.isEmpty || _getSampleName(id).toLowerCase().contains(_searchQuery.toLowerCase())
+      _searchQuery.isEmpty || id.toLowerCase().contains(_searchQuery.toLowerCase())
     ).toList();
 
     return ListView.builder(
@@ -435,8 +455,9 @@ class _FavoritesScreenState extends State<FavoritesScreen>
   }
 
   Widget _buildGridView(List<String> items, String type, Color color) {
+    // للآن البحث يعمل على المعرفات فقط
     List<String> filteredItems = items.where((id) => 
-      _searchQuery.isEmpty || _getSampleName(id).toLowerCase().contains(_searchQuery.toLowerCase())
+      _searchQuery.isEmpty || id.toLowerCase().contains(_searchQuery.toLowerCase())
     ).toList();
 
     return GridView.builder(
@@ -470,39 +491,53 @@ class _FavoritesScreenState extends State<FavoritesScreen>
           ),
           child: Icon(icon, color: color, size: 24),
         ),
-        title: Text(
-          _getSampleName(id),
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
+        title: FutureBuilder<String>(
+          future: _getRealName(id, type),
+          builder: (context, snapshot) {
+            return Text(
+              snapshot.data ?? 'جاري التحميل...',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            );
+          },
         ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Row(
+        subtitle: FutureBuilder<Map<String, String>>(
+          future: _getRealDataStrings(id, type),
+          builder: (context, snapshot) {
+            final data = snapshot.data ?? {};
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.location_on, size: 14, color: AppColors.textSecondary),
-                const SizedBox(width: 4),
-                Text(
-                  _getSampleLocation(id),
-                  style: const TextStyle(color: AppColors.textSecondary),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.location_on, size: 14, color: AppColors.textSecondary),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        data['location'] ?? 'جاري التحميل...',
+                        style: const TextStyle(color: AppColors.textSecondary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Icon(Icons.access_time, size: 14, color: AppColors.textSecondary),
+                    const SizedBox(width: 4),
+                    Text(
+                      data['date'] ?? 'جاري التحميل...',
+                      style: const TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ],
                 ),
               ],
-            ),
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                Icon(Icons.access_time, size: 14, color: AppColors.textSecondary),
-                const SizedBox(width: 4),
-                Text(
-                  _getSampleDate(id),
-                  style: const TextStyle(color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-          ],
+            );
+          },
         ),
         trailing: PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
@@ -567,40 +602,54 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                _getSampleName(id),
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              FutureBuilder<String>(
+                future: _getRealName(id, type),
+                builder: (context, snapshot) {
+                  return Text(
+                    snapshot.data ?? 'جاري التحميل...',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  );
+                },
               ),
               const SizedBox(height: 8),
-              Text(
-                _getSampleLocation(id),
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
-                  fontSize: 12,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              FutureBuilder<String>(
+                future: _getRealLocation(id, type),
+                builder: (context, snapshot) {
+                  return Text(
+                    snapshot.data ?? 'جاري التحميل...',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  );
+                },
+              ),
               ),
               const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _getSampleStatus(id),
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+              FutureBuilder<String>(
+                future: _getRealStatus(id, type),
+                builder: (context, snapshot) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      snapshot.data ?? 'جاري التحميل...',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
@@ -688,10 +737,11 @@ class _FavoritesScreenState extends State<FavoritesScreen>
     }
   }
 
-  void _viewDetails(String type, String id) {
+  void _viewDetails(String type, String id) async {
     // فتح تفاصيل السجل
+    final name = await _getRealName(id, type);
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('عرض تفاصيل: ${_getSampleName(id)}')),
+      SnackBar(content: Text('عرض تفاصيل: $name')),
     );
   }
 
@@ -856,52 +906,135 @@ class _FavoritesScreenState extends State<FavoritesScreen>
     }
   }
 
-  // بيانات وهمية للعرض - في التطبيق الحقيقي ستأتي من قاعدة البيانات
-  String _getSampleName(String id) {
-    Map<String, String> sampleNames = {
-      'martyr_1': 'أحمد محمد',
-      'martyr_2': 'فاطمة علي',
-      'injured_1': 'محمد أحمد',
-      'injured_2': 'عائشة محمد',
-      'prisoner_1': 'خالد أحمد',
-      'prisoner_2': 'نورا علي',
-    };
-    return sampleNames[id] ?? 'غير محدد';
+  // دوال جلب البيانات الحقيقية من Firebase
+  Future<Map<String, dynamic>> _getRealData(String id, String type) async {
+    try {
+      final documentSnapshot = await FirebaseFirestore.instance
+          .collection(type)
+          .doc(id)
+          .get();
+      
+      if (documentSnapshot.exists) {
+        return documentSnapshot.data() as Map<String, dynamic>;
+      }
+      return {};
+    } catch (e) {
+      print('خطأ في جلب البيانات: $e');
+      return {};
+    }
   }
 
-  String _getSampleLocation(String id) {
-    Map<String, String> sampleLocations = {
-      'martyr_1': 'القدس الشريف',
-      'martyr_2': 'قطاع غزة',
-      'injured_1': 'طولكرم',
-      'injured_2': 'نابلس',
-      'prisoner_1': 'بيت لحم',
-      'prisoner_2': 'قلقيلية',
-    };
-    return sampleLocations[id] ?? 'غير محدد';
+  Future<Map<String, String>> _getRealDataStrings(String id, String type) async {
+    final data = await _getRealData(id, type);
+    if (data.isEmpty) return {'location': 'غير محدد', 'date': 'غير محدد'};
+    
+    final location = _extractLocation(data);
+    final date = _extractDate(data);
+    
+    return {'location': location, 'date': date};
   }
 
-  String _getSampleDate(String id) {
-    Map<String, String> sampleDates = {
-      'martyr_1': '2025-01-15',
-      'martyr_2': '2025-02-20',
-      'injured_1': '2025-03-10',
-      'injured_2': '2025-04-05',
-      'prisoner_1': '2025-05-12',
-      'prisoner_2': '2025-06-18',
-    };
-    return sampleDates[id] ?? '2025-01-01';
+  Future<String> _getRealName(String id, String type) async {
+    final data = await _getRealData(id, type);
+    if (data.isEmpty) return 'غير محدد';
+    
+    if (data['fullName'] != null && data['fullName'].toString().isNotEmpty) {
+      return data['fullName'].toString();
+    }
+    if (data['name'] != null && data['name'].toString().isNotEmpty) {
+      return data['name'].toString();
+    }
+    return 'غير محدد';
   }
 
-  String _getSampleStatus(String id) {
-    Map<String, String> sampleStatuses = {
-      'martyr_1': AppConstants.statusApproved,
-      'martyr_2': AppConstants.statusPending,
-      'injured_1': AppConstants.statusApproved,
-      'injured_2': AppConstants.statusPending,
-      'prisoner_1': AppConstants.statusApproved,
-      'prisoner_2': AppConstants.statusRejected,
-    };
-    return sampleStatuses[id] ?? AppConstants.statusPending;
+  Future<String> _getRealLocation(String id, String type) async {
+    final data = await _getRealData(id, type);
+    if (data.isEmpty) return 'غير محدد';
+    return _extractLocation(data);
   }
+
+  String _extractLocation(Map<String, dynamic> data) {
+    // محاولة جلب الموقع من حقول مختلفة
+    if (data['deathPlace'] != null && data['deathPlace'].toString().isNotEmpty) {
+      return data['deathPlace'].toString();
+    }
+    if (data['injuryLocation'] != null && data['injuryLocation'].toString().isNotEmpty) {
+      return data['injuryLocation'].toString();
+    }
+    if (data['arrestLocation'] != null && data['arrestLocation'].toString().isNotEmpty) {
+      return data['arrestLocation'].toString();
+    }
+    if (data['location'] != null && data['location'].toString().isNotEmpty) {
+      return data['location'].toString();
+    }
+    if (data['currentLocation'] != null && data['currentLocation'].toString().isNotEmpty) {
+      return data['currentLocation'].toString();
+    }
+    return 'غير محدد';
+  }
+
+  Future<String> _getRealStatus(String id, String type) async {
+    final data = await _getRealData(id, type);
+    if (data.isEmpty) return AppConstants.statusPending;
+    
+    final status = data['status']?.toString();
+    if (status != null && status.isNotEmpty) {
+      return status;
+    }
+    return AppConstants.statusPending;
+  }
+
+  String _extractDate(Map<String, dynamic> data) {
+    // محاولة جلب التاريخ من حقول مختلفة
+    try {
+      if (data['deathDate'] != null) {
+        if (data['deathDate'] is Timestamp) {
+          return DateFormat('yyyy-MM-dd').format(data['deathDate'].toDate());
+        } else {
+          return data['deathDate'].toString();
+        }
+      }
+      if (data['injuryDate'] != null) {
+        if (data['injuryDate'] is Timestamp) {
+          return DateFormat('yyyy-MM-dd').format(data['injuryDate'].toDate());
+        } else {
+          return data['injuryDate'].toString();
+        }
+      }
+      if (data['arrestDate'] != null) {
+        if (data['arrestDate'] is Timestamp) {
+          return DateFormat('yyyy-MM-dd').format(data['arrestDate'].toDate());
+        } else {
+          return data['arrestDate'].toString();
+        }
+      }
+      if (data['date'] != null) {
+        if (data['date'] is Timestamp) {
+          return DateFormat('yyyy-MM-dd').format(data['date'].toDate());
+        } else {
+          return data['date'].toString();
+        }
+      }
+      if (data['created_at'] != null) {
+        return data['created_at'].toString();
+      }
+    } catch (e) {
+      print('خطأ في تنسيق التاريخ: $e');
+      return 'غير محدد';
+    }
+    return 'غير محدد';
+  }
+
+  Future<String> _getRealStatus(String id, String type) async {
+    final data = await _getRealData(id, type);
+    if (data.isEmpty) return AppConstants.statusPending;
+    
+    final status = data['status']?.toString();
+    if (status != null && status.isNotEmpty) {
+      return status;
+    }
+    return AppConstants.statusPending;
+  }
+
+
 }
