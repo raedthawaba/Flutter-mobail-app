@@ -5,7 +5,7 @@ import '../models/user.dart' as app_user;
 import '../models/martyr.dart';
 import '../models/injured.dart';
 import '../models/prisoner.dart';
-// import '../models/pending_data.dart'; // مؤقتاً معطل
+import '../models/pending_data.dart';
 import '../constants/app_constants.dart';
 
 class FirebaseDatabaseService {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:intl/intl.dart';
 import '../models/martyr.dart';
 import '../models/injured.dart';
@@ -541,11 +542,11 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
         builder: (context) => Scaffold(
           appBar: AppBar(title: const Text('عرض الصورة')),
           body: Center(
-            child: Image.file(
-              Uri.parse(imagePath).isAbsolute ? 
-                Uri.parse(imagePath).toFilePath() as String : 
-                imagePath
-            ),
+            child: imagePath.isEmpty
+                ? const Text('لا توجد صورة')
+                : Image.file(
+                    File(imagePath),
+                  ),
           ),
         ),
       ),

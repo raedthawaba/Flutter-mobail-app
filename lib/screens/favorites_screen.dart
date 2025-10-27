@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../services/favorites_service.dart';
@@ -1023,17 +1024,6 @@ class _FavoritesScreenState extends State<FavoritesScreen>
       return 'غير محدد';
     }
     return 'غير محدد';
-  }
-
-  Future<String> _getRealStatus(String id, String type) async {
-    final data = await _getRealData(id, type);
-    if (data.isEmpty) return AppConstants.statusPending;
-    
-    final status = data['status']?.toString();
-    if (status != null && status.isNotEmpty) {
-      return status;
-    }
-    return AppConstants.statusPending;
   }
 
 

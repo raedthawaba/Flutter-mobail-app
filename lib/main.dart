@@ -8,7 +8,6 @@ import 'constants/app_constants.dart';
 import 'screens/splash_screen.dart';
 import 'services/theme_service.dart';
 import 'services/firebase_database_service.dart';
-import 'utils/sample_data_generator.dart';
 
 void main() async {
   bool firebaseInitialized = false;

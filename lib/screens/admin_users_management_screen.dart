@@ -197,7 +197,7 @@ class _AdminUsersManagementScreenState extends State<AdminUsersManagementScreen>
 
     if (confirmed == true) {
       try {
-        await _firestoreService.deleteUser(user.uid!);
+        await _firestoreService.deleteUserByUid(user.uid!);
         _loadUsers();
         
         if (mounted) {
