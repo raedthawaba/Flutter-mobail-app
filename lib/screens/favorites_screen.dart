@@ -422,13 +422,13 @@ class _FavoritesScreenState extends State<FavoritesScreen>
               style: const TextStyle(fontWeight: FontWeight.bold),
             );
           },
-        ),
+),
         subtitle: FutureBuilder<String>(
           future: _getRealLocation(id, type),
           builder: (context, snapshot) {
             return Text(snapshot.data ?? 'جاري التحميل...');
           },
-        ),
+),
         trailing: IconButton(
           icon: const Icon(Icons.remove_circle, color: Colors.red),
           onPressed: () => _removeFromFavorites(type, id),
@@ -503,7 +503,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
               ),
             );
           },
-        ),
+),
         subtitle: FutureBuilder<Map<String, String>>(
           future: _getRealDataStrings(id, type),
           builder: (context, snapshot) {
@@ -539,7 +539,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
               ],
             );
           },
-        ),
+),
         trailing: PopupMenuButton<String>(
           icon: const Icon(Icons.more_vert, color: AppColors.textSecondary),
           onSelected: (value) => _handleItemAction(value, type, id),
@@ -616,7 +616,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                     overflow: TextOverflow.ellipsis,
                   );
                 },
-              ),
+),
               const SizedBox(height: 8),
               FutureBuilder<String>(
                 future: _getRealLocation(id, type),
@@ -632,7 +632,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                     overflow: TextOverflow.ellipsis,
                   );
                 },
-              ),
+),
               const SizedBox(height: 8),
               FutureBuilder<String>(
                 future: _getRealStatus(id, type),
@@ -653,7 +653,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                     ),
                   );
                 },
-            ],
+],
           ),
         ),
       ),
