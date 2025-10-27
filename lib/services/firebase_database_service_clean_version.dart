@@ -817,6 +817,41 @@ class FirebaseDatabaseService {
     }
   }
 
+  // ===== دوال إدارة البيانات المرسلة للمسؤول =====
+  
+  /// إرسال بيانات جديدة للمراجعة
+  Future<String> submitDataForReview({
+    required String type, // 'martyr', 'injured', 'prisoner'
+    required Map<String, dynamic> data,
+    String? imageUrl,
+    String? resumeUrl,
+  }) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception('يجب تسجيل الدخول أولاً');
+      }
+
+      final pendingData = PendingData(
+        id: null,
+        type: type,
+        status: 'pending',
+        data: data,
+        imageUrl: imageUrl,
+        resumeUrl: resumeUrl,
+        submittedBy: user.uid,
+        submittedAt: DateTime.now(),
+      );
+
+      final docRef = await _pendingDataCollection.add(pendingData.toFirestore());
+      
+      print('✅ تم إرسال البيانات للمراجعة - ID: ${docRef.id}');
+      return docRef.id;
+    } catch (e) {
+      throw Exception('خطأ في إرسال البيانات: $e');
+    }
+  }
+
   // ===== دوال تصفح البيانات للمستخدمين =====
 
   /// جلب جميع الشهداء المعتمدين (للعرض فقط)
@@ -900,55 +935,5 @@ class FirebaseDatabaseService {
       default:
         throw Exception('نوع البيانات غير مدعوم: $dataType');
     }
-  }
-
-  // ===== PENDING DATA PLACEHOLDER FUNCTIONS =====
-  // هذه الدوال مؤقتة لضمان نجاح البناء
-  // سيتم استعادتها لاحقاً مع pending_data functionality
-
-  /// جلب جميع البيانات المرسلة (للمسؤول) - مؤقت
-  Future<List<dynamic>> getPendingData({
-    String? statusFilter,
-    String? typeFilter,
-    int limit = 50,
-  }) async {
-    // إرجاع قائمة فارغة مؤقتاً
-    print('⚠️ getPendingData: Function temporarily disabled during build');
-    return [];
-  }
-
-  /// الموافقة على البيانات - مؤقت
-  Future<void> approveData(String pendingId, {String? adminNotes}) async {
-    print('⚠️ approveData: Function temporarily disabled during build');
-    throw Exception('وظيفة الموافقة معطلة مؤقتاً أثناء البناء');
-  }
-
-  /// رفض البيانات - مؤقت
-  Future<void> rejectData(String pendingId, {required String reason}) async {
-    print('⚠️ rejectData: Function temporarily disabled during build');
-    throw Exception('وظيفة الرفض معطلة مؤقتاً أثناء البناء');
-  }
-
-  /// إخفاء البيانات - مؤقت
-  Future<void> hideData(String pendingId, {String? reason}) async {
-    print('⚠️ hideData: Function temporarily disabled during build');
-    throw Exception('وظيفة الإخفاء معطلة مؤقتاً أثناء البناء');
-  }
-
-  /// حذف البيانات - مؤقت
-  Future<void> deleteData(String pendingId) async {
-    print('⚠️ deleteData: Function temporarily disabled during build');
-    throw Exception('وظيفة الحذف معطلة مؤقتاً أثناء البناء');
-  }
-
-  /// إرسال بيانات للمراجعة - مؤقت
-  Future<String> submitDataForReview({
-    required String type,
-    required Map<String, dynamic> data,
-    String? imageUrl,
-    String? resumeUrl,
-  }) async {
-    print('⚠️ submitDataForReview: Function temporarily disabled during build');
-    throw Exception('وظيفة الإرسال للمراجعة معطلة مؤقتاً أثناء البناء');
   }
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/pending_data.dart';
+// import '../models/pending_data.dart'; // مؤقتاً معطل
 import '../models/martyr.dart';
 import '../models/injured.dart';
 import '../models/prisoner.dart';
@@ -18,7 +18,7 @@ class AdminApprovalScreen extends StatefulWidget {
 class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
   final FirebaseDatabaseService _dbService = FirebaseDatabaseService();
   
-  List<PendingData> _pendingData = [];
+  List<dynamic> _pendingData = []; // مؤقتاً List<PendingData>
   bool _isLoading = true;
   String _selectedStatus = 'all'; // all, pending, approved, rejected, hidden
   String _selectedType = 'all'; // all, martyr, injured, prisoner
@@ -419,7 +419,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     );
   }
 
-  Future<void> _approveData(PendingData item) async {
+  Future<void> _approveData(dynamic item) async { // PendingData
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -463,7 +463,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     }
   }
 
-  Future<void> _rejectData(PendingData item) async {
+  Future<void> _rejectData(dynamic item) async { // PendingData
     final TextEditingController reasonController = TextEditingController();
     
     final result = await showDialog<bool>(
@@ -518,7 +518,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     }
   }
 
-  Future<void> _hideData(PendingData item) async {
+  Future<void> _hideData(dynamic item) async { // PendingData
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -557,7 +557,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     }
   }
 
-  Future<void> _deleteData(PendingData item) async {
+  Future<void> _deleteData(dynamic item) async { // PendingData
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
