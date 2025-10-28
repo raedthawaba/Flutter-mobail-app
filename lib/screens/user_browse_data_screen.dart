@@ -213,7 +213,7 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (item.age != null) Text('العمر: ${item.age} سنة'),
-                if (item.nickname != null) Text('الكنية: ${item.nickname}'),
+                if (widget.dataType == 'martyrs' && item.nickname != null) Text('الكنية: ${item.nickname}'),
                 if (item.area != null) Text('القبيلة: ${item.area}'),
                 if (widget.dataType == 'martyrs' && item.deathDate != null)
                   Text('تاريخ الاستشهاد: ${_formatDate(item.deathDate)}'),
@@ -225,14 +225,36 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
                   Text('تاريخ الإصابة: ${_formatDate(item.injuryDate)}'),
                 if (widget.dataType == 'injured' && item.injuryType != null)
                   Text('نوع الإصابة: ${item.injuryType}'),
+                if (widget.dataType == 'injured' && item.injuryDegree != null)
+                  Text('درجة الإصابة: ${item.injuryDegree}'),
                 if (widget.dataType == 'injured' && item.placeOfInjury != null)
                   Text('مكان الإصابة: ${item.placeOfInjury}'),
+                if (widget.dataType == 'injured' && item.hospitalName != null && item.hospitalName!.isNotEmpty)
+                  Text('المستشفى: ${item.hospitalName}'),
+                if (widget.dataType == 'injured' && item.currentStatus != null)
+                  Text('الحالة الحالية: ${item.currentStatus}'),
                 if (widget.dataType == 'prisoners' && item.captureDate != null)
                   Text('تاريخ الأسر: ${_formatDate(item.captureDate)}'),
                 if (widget.dataType == 'prisoners' && item.capturedBy != null)
                   Text('أُسر على يد: ${item.capturedBy}'),
                 if (widget.dataType == 'prisoners' && item.placeOfArrest != null)
                   Text('مكان الأسر: ${item.placeOfArrest}'),
+                if (widget.dataType == 'prisoners' && item.currentStatus != null)
+                  Text('الحالة الحالية: ${item.currentStatus}'),
+                if (widget.dataType == 'prisoners' && item.currentPrison != null)
+                  Text('مكان الاعتقال: ${item.currentPrison}'),
+                if (widget.dataType == 'prisoners' && item.familyContact != null)
+                  Text('جهة اتصال العائلة: ${item.familyContact}'),
+                if (widget.dataType == 'injured' && item.injuryDescription != null && item.injuryDescription!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text('وصف الإصابة: ${item.injuryDescription}'),
+                  ),
+                if (item.notes != null && item.notes!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text('ملاحظات إضافية: ${item.notes}'),
+                  ),
                 if (item.adminNotes != null && item.adminNotes!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
