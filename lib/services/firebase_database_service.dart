@@ -499,53 +499,24 @@ class FirebaseDatabaseService {
         return getAllApprovedData(dataType);
       }
 
-      CollectionReference collection;
-      switch (dataType) {
-        case 'martyrs':
-          collection = _martyrsCollection;
-          break;
-        case 'injured':
-          collection = _injuredCollection;
-          break;
-        case 'prisoners':
-          collection = _prisonersCollection;
-          break;
-        default:
-          throw Exception('نوع البيانات غير مدعوم: $dataType');
-      }
-
-      // البحث باستخدام .where() مع contains
-      final querySnapshot = await collection
-          .where('status', isEqualTo: 'approved')
-          .where('fullName', isGreaterThanOrEqualTo: searchQuery)
-          .where('fullName', isLessThanOrEqualTo: searchQuery + '\uf8ff')
-          .get();
-
-      List<dynamic> results;
+      // جلب جميع البيانات المعتمدة أولاً
+      final allData = await getAllApprovedData(dataType);
       
-      switch (dataType) {
-        case 'martyrs':
-          results = querySnapshot.docs.map((doc) => 
-            _convertFirestoreToMartyr(doc.data() as Map<String, dynamic>)
-          ).toList().cast<Martyr>();
-          break;
-        case 'injured':
-          results = querySnapshot.docs.map((doc) => 
-            _convertFirestoreToInjured(doc.data() as Map<String, dynamic>)
-          ).toList().cast<Injured>();
-          break;
-        case 'prisoners':
-          results = querySnapshot.docs.map((doc) => 
-            _convertFirestoreToPrisoner(doc.data() as Map<String, dynamic>)
-          ).toList().cast<Prisoner>();
-          break;
-        default:
-          throw Exception('نوع البيانات غير مدعوم: $dataType');
-      }
+      // البحث المحلي في الاسم والكنية
+      String searchLower = searchQuery.toLowerCase().trim();
+      List<dynamic> filteredData = allData.where((item) {
+        return item.fullName.toLowerCase().contains(searchLower) ||
+               (item.nickname != null && item.nickname.toLowerCase().contains(searchLower));
+      }).toList();
       
-      // ترتيب البيانات
-      results.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
-      return results;
+      // ترتيب النتائج (الأحدث أولاً)
+      filteredData.sort((a, b) {
+        final aTime = a.createdAt ?? DateTime.now();
+        final bTime = b.createdAt ?? DateTime.now();
+        return bTime.compareTo(aTime);
+      });
+      
+      return filteredData;
     } catch (e) {
       throw Exception('خطأ في البحث: $e');
     }
