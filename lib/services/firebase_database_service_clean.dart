@@ -132,7 +132,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['uid'] = doc.id;
         return app_user.User.fromMap(data);
-      }).toList().cast<app_user.User>();
+      }).toList();
       print('✅ تم جلب ${users.length} مستخدم');
       return users;
     } catch (e) {
@@ -192,7 +192,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToMartyr(data);
-      }).toList().cast<Martyr>();
+      }).toList();
     } catch (e) {
       throw Exception('خطأ في جلب الشهداء: $e');
     }
@@ -208,7 +208,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToMartyr(data);
-      }).toList().cast<Martyr>();
+      }).toList();
     } catch (e) {
       throw Exception('خطأ في جلب الشهداء: $e');
     }
@@ -266,7 +266,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToInjured(data);
-      }).toList().cast<Injured>();
+      }).toList();
     } catch (e) {
       throw Exception('خطأ في جلب الجرحى: $e');
     }
@@ -282,7 +282,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToInjured(data);
-      }).toList().cast<Injured>();
+      }).toList();
     } catch (e) {
       throw Exception('خطأ في جلب الجرحى: $e');
     }
@@ -340,7 +340,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToPrisoner(data);
-      }).toList().cast<Prisoner>();
+      }).toList();
     } catch (e) {
       throw Exception('خطأ في جلب الأسرى: $e');
     }
@@ -356,7 +356,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToPrisoner(data);
-      }).toList().cast<Prisoner>();
+      }).toList();
     } catch (e) {
       throw Exception('خطأ في جلب الأسرى: $e');
     }
@@ -415,21 +415,16 @@ class FirebaseDatabaseService {
 
       final querySnapshot = await collection
           .where('status', isEqualTo: 'approved')
+          .orderBy('created_at', descending: true)
           .get();
 
       switch (dataType) {
         case 'martyrs':
-          final results = querySnapshot.docs.map((doc) => _convertFirestoreToMartyr(doc.data() as Map<String, dynamic>)).toList().cast<Martyr>();
-          results.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
-          return results;
+          return querySnapshot.docs.map((doc) => _convertFirestoreToMartyr(doc.data())).toList();
         case 'injured':
-          final results = querySnapshot.docs.map((doc) => _convertFirestoreToInjured(doc.data() as Map<String, dynamic>)).toList().cast<Injured>();
-          results.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
-          return results;
+          return querySnapshot.docs.map((doc) => _convertFirestoreToInjured(doc.data())).toList();
         case 'prisoners':
-          final results = querySnapshot.docs.map((doc) => _convertFirestoreToPrisoner(doc.data() as Map<String, dynamic>)).toList().cast<Prisoner>();
-          results.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
-          return results;
+          return querySnapshot.docs.map((doc) => _convertFirestoreToPrisoner(doc.data())).toList();
         default:
           throw Exception('نوع البيانات غير مدعوم: $dataType');
       }

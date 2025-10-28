@@ -18,7 +18,7 @@
 **/downloads/
 **/eggs/
 **/.eggs/
-**/lib/
+# **/lib/  # إزالة هذا السطر لمشروع Flutter
 **/lib64/
 **/parts/
 **/sdist/
@@ -557,7 +557,7 @@
 **/doc/
 **/.bundle/
 **/vendor/bundle
-**/lib/bundler/man/
+# **/lib/  # إزالة هذا السطر لمشروع Flutterbundler/man/
 **/.rbenv-version
 **/.rvmrc
 **/.ruby-version
