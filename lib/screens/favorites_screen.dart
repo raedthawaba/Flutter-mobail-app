@@ -632,7 +632,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                     overflow: TextOverflow.ellipsis,
                   );
                 },
-),
+              ),
               const SizedBox(height: 8),
               FutureBuilder<String>(
                 future: _getRealStatus(id, type),
@@ -654,6 +654,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                   );
                 },
               ),
+            ),
           ),
         ),
       ),
