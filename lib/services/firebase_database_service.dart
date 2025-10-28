@@ -132,7 +132,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['uid'] = doc.id;
         return app_user.User.fromMap(data);
-      }).toList();
+      }).toList().cast<app_user.User>();
       print('✅ تم جلب ${users.length} مستخدم');
       return users;
     } catch (e) {
@@ -192,7 +192,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToMartyr(data);
-      }).toList();
+      }).toList().cast<Martyr>();
     } catch (e) {
       throw Exception('خطأ في جلب الشهداء: $e');
     }
@@ -208,7 +208,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToMartyr(data);
-      }).toList();
+      }).toList().cast<Martyr>();
     } catch (e) {
       throw Exception('خطأ في جلب الشهداء: $e');
     }
@@ -266,7 +266,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToInjured(data);
-      }).toList();
+      }).toList().cast<Injured>();
     } catch (e) {
       throw Exception('خطأ في جلب الجرحى: $e');
     }
@@ -282,7 +282,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToInjured(data);
-      }).toList();
+      }).toList().cast<Injured>();
     } catch (e) {
       throw Exception('خطأ في جلب الجرحى: $e');
     }
@@ -340,7 +340,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToPrisoner(data);
-      }).toList();
+      }).toList().cast<Prisoner>();
     } catch (e) {
       throw Exception('خطأ في جلب الأسرى: $e');
     }
@@ -356,7 +356,7 @@ class FirebaseDatabaseService {
         final data = doc.data() as Map<String, dynamic>;
         data['id'] = doc.id;
         return _convertFirestoreToPrisoner(data);
-      }).toList();
+      }).toList().cast<Prisoner>();
     } catch (e) {
       throw Exception('خطأ في جلب الأسرى: $e');
     }
