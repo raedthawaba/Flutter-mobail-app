@@ -438,6 +438,119 @@ class FirebaseDatabaseService {
     }
   }
 
+  // ===== دوال التحديث الآلي =====
+  
+  Stream<List<dynamic>> listenToApprovedData(String dataType) {
+    try {
+      CollectionReference collection;
+      switch (dataType) {
+        case 'martyrs':
+          collection = _martyrsCollection;
+          break;
+        case 'injured':
+          collection = _injuredCollection;
+          break;
+        case 'prisoners':
+          collection = _prisonersCollection;
+          break;
+        default:
+          throw Exception('نوع البيانات غير مدعوم: $dataType');
+      }
+
+      return collection
+          .where('status', isEqualTo: 'approved')
+          .snapshots()
+          .map((querySnapshot) {
+            List<dynamic> results;
+            
+            switch (dataType) {
+              case 'martyrs':
+                results = querySnapshot.docs.map((doc) => 
+                  _convertFirestoreToMartyr(doc.data() as Map<String, dynamic>)
+                ).toList().cast<Martyr>();
+                break;
+              case 'injured':
+                results = querySnapshot.docs.map((doc) => 
+                  _convertFirestoreToInjured(doc.data() as Map<String, dynamic>)
+                ).toList().cast<Injured>();
+                break;
+              case 'prisoners':
+                results = querySnapshot.docs.map((doc) => 
+                  _convertFirestoreToPrisoner(doc.data() as Map<String, dynamic>)
+                ).toList().cast<Prisoner>();
+                break;
+              default:
+                throw Exception('نوع البيانات غير مدعوم: $dataType');
+            }
+            
+            // ترتيب البيانات حسب تاريخ الإنشاء (الأحدث أولاً)
+            results.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+            return results;
+          });
+    } catch (e) {
+      throw Exception('خطأ في إعداد المستمع للبيانات: $e');
+    }
+  }
+
+  // البحث في البيانات المعتمدة
+  Future<List<dynamic>> searchInApprovedData(String dataType, String searchQuery) async {
+    try {
+      if (searchQuery.trim().isEmpty) {
+        return getAllApprovedData(dataType);
+      }
+
+      CollectionReference collection;
+      switch (dataType) {
+        case 'martyrs':
+          collection = _martyrsCollection;
+          break;
+        case 'injured':
+          collection = _injuredCollection;
+          break;
+        case 'prisoners':
+          collection = _prisonersCollection;
+          break;
+        default:
+          throw Exception('نوع البيانات غير مدعوم: $dataType');
+      }
+
+      // البحث باستخدام .where() مع contains
+      final querySnapshot = await collection
+          .where('status', isEqualTo: 'approved')
+          .where('fullName', isGreaterThanOrEqualTo: searchQuery)
+          .where('fullName', isLessThanOrEqualTo: searchQuery + '\uf8ff')
+          .get();
+
+      List<dynamic> results;
+      
+      switch (dataType) {
+        case 'martyrs':
+          results = querySnapshot.docs.map((doc) => 
+            _convertFirestoreToMartyr(doc.data() as Map<String, dynamic>)
+          ).toList().cast<Martyr>();
+          break;
+        case 'injured':
+          results = querySnapshot.docs.map((doc) => 
+            _convertFirestoreToInjured(doc.data() as Map<String, dynamic>)
+          ).toList().cast<Injured>();
+          break;
+        case 'prisoners':
+          results = querySnapshot.docs.map((doc) => 
+            _convertFirestoreToPrisoner(doc.data() as Map<String, dynamic>)
+          ).toList().cast<Prisoner>();
+          break;
+        default:
+          throw Exception('نوع البيانات غير مدعوم: $dataType');
+      }
+      
+      // ترتيب البيانات
+      results.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+      return results;
+    } catch (e) {
+      throw Exception('خطأ في البحث: $e');
+    }
+  }
+
   // ===== دوال الإحصائيات =====
 
   Future<Map<String, int>> getStatistics() async {
