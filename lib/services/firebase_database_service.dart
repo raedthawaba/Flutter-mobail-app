@@ -420,11 +420,11 @@ class FirebaseDatabaseService {
 
       switch (dataType) {
         case 'martyrs':
-          return querySnapshot.docs.map((doc) => _convertFirestoreToMartyr(doc.data())).toList();
+          return querySnapshot.docs.map((doc) => _convertFirestoreToMartyr(doc.data() as Map<String, dynamic>)).toList().cast<Martyr>();
         case 'injured':
-          return querySnapshot.docs.map((doc) => _convertFirestoreToInjured(doc.data())).toList();
+          return querySnapshot.docs.map((doc) => _convertFirestoreToInjured(doc.data() as Map<String, dynamic>)).toList().cast<Injured>();
         case 'prisoners':
-          return querySnapshot.docs.map((doc) => _convertFirestoreToPrisoner(doc.data())).toList();
+          return querySnapshot.docs.map((doc) => _convertFirestoreToPrisoner(doc.data() as Map<String, dynamic>)).toList().cast<Prisoner>();
         default:
           throw Exception('نوع البيانات غير مدعوم: $dataType');
       }
