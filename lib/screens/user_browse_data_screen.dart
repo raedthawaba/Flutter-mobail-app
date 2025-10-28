@@ -213,8 +213,7 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (item.age != null) Text('العمر: ${item.age} سنة'),
-                if (item.gender != null) Text('الجنس: ${item.gender}'),
-                if (item.location != null) Text('الموقع: ${item.location}'),
+                if (item.nickname != null) Text('الكنية: ${item.nickname}'),
                 if (widget.dataType == 'martyrs' && item.deathDate != null)
                   Text('تاريخ الاستشهاد: ${_formatDate(item.deathDate)}'),
                 if (widget.dataType == 'injured' && item.injuryDate != null)
