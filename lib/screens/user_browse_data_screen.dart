@@ -214,16 +214,29 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
               children: [
                 if (item.age != null) Text('العمر: ${item.age} سنة'),
                 if (item.nickname != null) Text('الكنية: ${item.nickname}'),
+                if (item.area != null) Text('القبيلة: ${item.area}'),
                 if (widget.dataType == 'martyrs' && item.deathDate != null)
                   Text('تاريخ الاستشهاد: ${_formatDate(item.deathDate)}'),
+                if (widget.dataType == 'martyrs' && item.placeOfMartyrdom != null)
+                  Text('مكان الاستشهاد: ${item.placeOfMartyrdom}'),
+                if (widget.dataType == 'martyrs' && item.causeOfMartyrdom != null)
+                  Text('سبب الاستشهاد: ${item.causeOfMartyrdom}'),
                 if (widget.dataType == 'injured' && item.injuryDate != null)
                   Text('تاريخ الإصابة: ${_formatDate(item.injuryDate)}'),
+                if (widget.dataType == 'injured' && item.injuryType != null)
+                  Text('نوع الإصابة: ${item.injuryType}'),
+                if (widget.dataType == 'injured' && item.placeOfInjury != null)
+                  Text('مكان الإصابة: ${item.placeOfInjury}'),
                 if (widget.dataType == 'prisoners' && item.captureDate != null)
                   Text('تاريخ الأسر: ${_formatDate(item.captureDate)}'),
-                if (item.description != null && item.description.isNotEmpty)
+                if (widget.dataType == 'prisoners' && item.capturedBy != null)
+                  Text('أُسر على يد: ${item.capturedBy}'),
+                if (widget.dataType == 'prisoners' && item.placeOfArrest != null)
+                  Text('مكان الأسر: ${item.placeOfArrest}'),
+                if (item.adminNotes != null && item.adminNotes!.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Text('التفاصيل: ${item.description}'),
+                    child: Text('ملاحظات: ${item.adminNotes}'),
                   ),
               ],
             ),
