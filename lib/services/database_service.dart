@@ -23,7 +23,7 @@ class DatabaseService {
 
   Future<Database> _initDatabase() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
-    String path = join(documentsDirectory.path, 'palestine_martyrs.db');
+    String path = join(documentsDirectory.path, 'yemen_martyrs.db');
     
     return await openDatabase(
       path,

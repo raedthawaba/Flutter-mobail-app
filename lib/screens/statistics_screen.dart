@@ -430,6 +430,8 @@ class _StatisticsScreenState extends State<StatisticsScreen>
       _buildActivityItem('إضافة شهادة جديدة', 'أحمد محمد - عدن', 'منذ ساعتين'),
       _buildActivityItem('تحديث حالة', 'فاطمة علي - تعز', 'منذ 3 ساعات'),
       _buildActivityItem('موافقة على تسجيل', 'محمد أحمد - الحديدة', 'منذ 5 ساعات'),
+      _buildActivityItem('إضافة جريح', 'علي محمود - صنعاء', 'منذ 6 ساعات'),
+      _buildActivityItem('تحديث بيانات أسير', 'خديجة علي - مأرب', 'منذ 8 ساعات'),
     ]);
     
     return activities;
@@ -881,10 +883,29 @@ class _StatisticsScreenState extends State<StatisticsScreen>
             DropdownButton<String>(
               value: _selectedRegion,
               items: const [
-                DropdownMenuItem(value: 'all', child: Text('جميع المناطق')),
-                DropdownMenuItem(value: 'gaza', child: Text('قطاع غزة')),
-                DropdownMenuItem(value: 'west_bank', child: Text('الضفة الغربية')),
-                DropdownMenuItem(value: 'jerusalem', child: Text('القدس الشريف')),
+                DropdownMenuItem(value: 'all', child: Text('جميع المحافظات')),
+                DropdownMenuItem(value: 'aden', child: Text('عدن')),
+                DropdownMenuItem(value: 'sanaa', child: Text('صنعاء')),
+                DropdownMenuItem(value: 'amana_capital', child: Text('أمانة العاصمة')),
+                DropdownMenuItem(value: 'hodeidah', child: Text('الحديدة')),
+                DropdownMenuItem(value: 'taiz', child: Text('تعز')),
+                DropdownMenuItem(value: 'hadhramaut', child: Text('حضرموت')),
+                DropdownMenuItem(value: 'lahej', child: Text('لحج')),
+                DropdownMenuItem(value: 'mareb', child: Text('مأرب')),
+                DropdownMenuItem(value: 'ib', child: Text('إب')),
+                DropdownMenuItem(value: 'dhamar', child: Text('ذمار')),
+                DropdownMenuItem(value: 'hadida', child: Text('البحيرة')),
+                DropdownMenuItem(value: 'baida', child: Text('البيضاء')),
+                DropdownMenuItem(value: 'aljauf', child: Text('الجوف')),
+                DropdownMenuItem(value: 'mahwit', child: Text('المحويت')),
+                DropdownMenuItem(value: 'mahra', child: Text('المهرة')),
+                DropdownMenuItem(value: 'sabia', child: Text('شبوة')),
+                DropdownMenuItem(value: 'sada', child: Text('صعدة')),
+                DropdownMenuItem(value: 'aman', child: Text('عمران')),
+                DropdownMenuItem(value: 'rama', child: Text('ريمة')),
+                DropdownMenuItem(value: 'hajjah', child: Text('حجة')),
+                DropdownMenuItem(value: 'socotra', child: Text('سقطرى')),
+                DropdownMenuItem(value: 'abyn', child: Text('أبين')),
               ],
               onChanged: (value) {
                 setState(() {
@@ -927,12 +948,14 @@ class _StatisticsScreenState extends State<StatisticsScreen>
   }
 
   Widget _buildPieChart() {
-    // بيانات وهمية للعرض
+    // بيانات وهمية للعرض - محافظات اليمن
     final data = [
       PieData('عدن', 35, Colors.red),
-      PieData('تعز', 25, Colors.blue),
+      PieData('صنعاء', 25, Colors.blue),
       PieData('الحديدة', 20, Colors.green),
-      PieData('محافظات أخرى', 20, Colors.orange),
+      PieData('تعز', 15, Colors.purple),
+      PieData('حضرموت', 12, Colors.orange),
+      PieData('محافظات أخرى', 8, Colors.brown),
     ];
 
     return PieChart(

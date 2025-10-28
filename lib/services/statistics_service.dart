@@ -79,28 +79,28 @@ class StatisticsService {
       List<Injured> allInjured = await _dbService.getAllInjured();
       List<Prisoner> allPrisoners = await _dbService.getAllPrisoners();
       
-      //统计各省份的数量
+      // حساب عدد الحالات في كل محافظة يمنية
       Map<String, int> regionCounts = {};
       
-      // 统计死亡者地区
+      // حساب حالات الشهداء حسب المحافظة
       for (Martyr martyr in allMartyrs) {
         String region = _getRegionFromLocation(martyr.deathPlace);
         regionCounts[region] = (regionCounts[region] ?? 0) + 1;
       }
       
-      // 统计伤员地区
+      // حساب حالات الجرحى حسب المحافظة
       for (Injured injured in allInjured) {
         String region = _getRegionFromLocation(injured.injuryPlace);
         regionCounts[region] = (regionCounts[region] ?? 0) + 1;
       }
       
-      // 统计战俘地区
+      // حساب حالات الأسرى حسب المحافظة
       for (Prisoner prisoner in allPrisoners) {
         String region = _getRegionFromLocation(prisoner.capturePlace);
         regionCounts[region] = (regionCounts[region] ?? 0) + 1;
       }
       
-      // 获取前5个地区
+      // الحصول على أعلى 5 محافظات
       List<MapEntry<String, int>> sortedRegions = regionCounts.entries.toList()
         ..sort((a, b) => b.value.compareTo(a.value));
       
@@ -125,11 +125,11 @@ class StatisticsService {
     }
   }
 
-  // 从位置信息中获取省份
+  // استخراج اسم المحافظة من الموقع
   String _getRegionFromLocation(String location) {
     String lowerLocation = location.toLowerCase();
     
-    // 省份匹配逻辑
+    // منطق مطابقة المحافظات اليمنية
     for (String governorate in AppConstants.yemenGovernorates) {
       if (lowerLocation.contains(governorate.toLowerCase())) {
         return governorate;
@@ -148,8 +148,9 @@ class StatisticsService {
         'correlations': await _analyzeCorrelations(),
         'insights': [
           'تم رصد زيادة في الحالات المسجلة في محافظة عدن',
-          'تظهر البيانات تبايناً في توزيع الحالات عبر المحافظات',
-          'معدل الموافقة على الطلبات وصل إلى 75%'
+          'تظهر البيانات تبايناً في توزيع الحالات عبر المحافظات اليمنية',
+          'معدل الموافقة على الطلبات وصل إلى 75%',
+          'المحافظات الساحلية تسجل معدل إصابات أعلى'
         ]
       };
     } catch (e) {
@@ -419,8 +420,8 @@ class StatisticsService {
   // إعداد بيانات الخريطة الحرارية
   Map<String, dynamic> _prepareHeatMapData(Map<String, int> regionCounts) {
     return {
-      'center': {'lat': 31.7683, 'lng': 35.2137}, // وسط فلسطين
-      'zoom': 8,
+      'center': {'lat': 15.5527, 'lng': 48.5164}, // وسط اليمن
+      'zoom': 7,
       'regions': regionCounts.entries.map((entry) => {
         'name': entry.key,
         'intensity': _calculateIntensity(entry.value, regionCounts),
@@ -437,7 +438,7 @@ class StatisticsService {
 
   // تحليل الأنماط
   Future<Map<String, dynamic>> _analyzePatterns() async {
-    // تحليل الأنماط الزمنية والجغرافية
+    // تحليل الأنماط الزمنية والجغرافية في المحافظات اليمنية
     return {
       'timePatterns': 'تحليل مستمر',
       'locationPatterns': 'تحليل مستمر',
@@ -448,9 +449,9 @@ class StatisticsService {
   // استخراج الرؤى
   Future<List<String>> _extractInsights() async {
     return [
-      'تم تحديد زيادة في نشاط المنطقة الشمالية',
+      'تم تحديد زيادة في نشاط المناطق الجنوبية',
       'هناك ارتفاع في حالات الجرحى خلال الأشهر الماضية',
-      'القاهرة والتنقية الأكثر نشاطاً في التوثيق'
+      'عدن وصنعاء الأكثر نشاطاً في التوثيق'
     ];
   }
 

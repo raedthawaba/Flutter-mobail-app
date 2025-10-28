@@ -64,7 +64,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '123456789',
     projectId: 'flutter-mobail-app',
     storageBucket: 'flutter-mobail-app.appspot.com',
-    iosBundleId: 'com.example.palestinemartyrs',
+    iosBundleId: 'com.example.yemenmartyrs',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -73,7 +73,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '123456789',
     projectId: 'flutter-mobail-app',
     storageBucket: 'flutter-mobail-app.appspot.com',
-    iosBundleId: 'com.example.palestinemartyrs',
+    iosBundleId: 'com.example.yemenmartyrs',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(

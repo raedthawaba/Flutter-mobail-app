@@ -11,16 +11,16 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   
-  runApp(const PalestineMartyrsApp());
+  runApp(const YemenMartyrsApp());
 }
 
-class PalestineMartyrsApp extends StatelessWidget {
-  const PalestineMartyrsApp({super.key});
+class YemenMartyrsApp extends StatelessWidget {
+  const YemenMartyrsApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'فلسطين الشهداء',
+      title: 'اليمن الشهداء والجرحى والأسرى',
       theme: ThemeData(
         primarySwatch: Colors.green,
         scaffoldBackgroundColor: Colors.white,
