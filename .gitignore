@@ -18,7 +18,7 @@
 **/downloads/
 **/eggs/
 **/.eggs/
-**/lib/
+**/lib32/
 **/lib64/
 **/parts/
 **/sdist/
@@ -557,7 +557,7 @@
 **/doc/
 **/.bundle/
 **/vendor/bundle
-**/lib/bundler/man/
+**/lib32/bundler/man/
 **/.rbenv-version
 **/.rvmrc
 **/.ruby-version
