@@ -687,7 +687,8 @@ class FirebaseDatabaseService {
       return false;
     }
   }
-}
+
+  // ===== دوال إنشاء والبحث عن المستخدمين =====
 
   Future<void> createUser(app_user.User user) async {
     try {

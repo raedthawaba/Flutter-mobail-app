@@ -616,7 +616,7 @@ class _FavoritesScreenState extends State<FavoritesScreen>
                     overflow: TextOverflow.ellipsis,
                   );
                 },
-),
+              ),
               const SizedBox(height: 8),
               FutureBuilder<String>(
                 future: _getRealLocation(id, type),
