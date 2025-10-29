@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import '../constants/app_colors.dart';
-import '../constants/app_constants.dart';
+import 'dart:io';
+import '../services/firebase_database_service.dart';
+import '../services/auth_service.dart';
 import '../models/martyr.dart';
 import '../models/injured.dart';
 import '../models/prisoner.dart';
-import '../services/firebase_database_service.dart';
+import '../constants/app_colors.dart';
 
 class UserBrowseDataScreen extends StatefulWidget {
   final String dataType; // 'martyrs', 'injured', 'prisoners'
@@ -19,39 +20,61 @@ class UserBrowseDataScreen extends StatefulWidget {
 }
 
 class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
-  final FirebaseDatabaseService _firebaseService = FirebaseDatabaseService();
+  final FirebaseDatabaseService _dbService = FirebaseDatabaseService();
+  // ًں”§ ط§ظ„ط¥طµظ„ط§ط­ ط§ظ„ط£ط³ط§ط³ظٹ: ط¥ط¶ط§ظپط© AuthService instance
+  final AuthService _authService = AuthService();
+  
   List<dynamic> _dataList = [];
   bool _isLoading = true;
+  String _error = '';
   String _searchQuery = '';
-
-  // Helper function to format dates
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
+  TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    
+    // ط¥ط¹ط¯ط§ط¯ listener ظ„ظ„طھط­ط¯ظٹط« ط§ظ„ط¢ظ„ظٹ
+    _setupRealtimeListener();
+  }
+
+  void _setupRealtimeListener() {
+    // ط§ط³طھظ…ط¹ ظ„ظ„طھط­ط¯ظٹط«ط§طھ ط§ظ„ط¢ظ„ظٹط©
+    _dbService.listenToApprovedData(widget.dataType).listen(
+      (data) {
+        // طھط­ط¯ظٹط« ط§ظ„ط¨ظٹط§ظ†ط§طھ ظˆط¥ط¬ط±ط§ط، ط§ظ„ط¨ط­ط« ط¥ط°ط§ ظƒط§ظ† ظ‡ظ†ط§ظƒ ظ†طµ
+        List<dynamic> updatedData = data;
+        if (_searchQuery.trim().isNotEmpty) {
+          updatedData = data.where((item) {
+            return item.fullName.toLowerCase().contains(_searchQuery.toLowerCase());
+          }).toList();
+        }
+        
+        setState(() {
+          _dataList = updatedData;
+          _isLoading = false;
+          _error = '';
+        });
+      },
+      onError: (error) {
+        setState(() {
+          _error = 'ط®ط·ط£ ظپظٹ ط§ظ„طھط­ط¯ظٹط« ط§ظ„ط¢ظ„ظٹ: $error';
+          _isLoading = false;
+        });
+      },
+    );
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    
     try {
-      List<dynamic> data = [];
-      
-      switch (widget.dataType) {
-        case 'martyrs':
-          data = await _firebaseService.getAllApprovedMartyrs();
-          break;
-        case 'injured':
-          data = await _firebaseService.getAllApprovedInjured();
-          break;
-        case 'prisoners':
-          data = await _firebaseService.getAllApprovedPrisoners();
-          break;
-      }
+      setState(() {
+        _isLoading = true;
+        _error = '';
+      });
+
+      // ط¬ظ„ط¨ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط¹طھظ…ط¯ط© ظپظ‚ط·
+      final data = await _dbService.getAllApprovedData(widget.dataType);
       
       setState(() {
         _dataList = data;
@@ -59,442 +82,482 @@ class _UserBrowseDataScreenState extends State<UserBrowseDataScreen> {
       });
     } catch (e) {
       setState(() {
-        _dataList = [];
+        _error = 'ط®ط·ط£ ظپظٹ طھط­ظ…ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ: $e';
         _isLoading = false;
       });
-      
-      // معالجة أفضل للأخطاء
-      String errorMessage = 'خطأ في تحميل البيانات';
-      String errorDescription = 'يرجى المحاولة مرة أخرى لاحقاً';
-      
-      if (e.toString().contains('failed-precondition')) {
-        errorMessage = 'خطأ في الاتصال بقاعدة البيانات';
-        errorDescription = 'يتطلب إعداد فهارس قاعدة البيانات';
-      } else if (e.toString().contains('permission-denied')) {
-        errorMessage = 'لا تملك صلاحية للوصول للبيانات';
-        errorDescription = 'يرجى التواصل مع الإدارة';
-      } else if (e.toString().contains('not-found')) {
-        errorMessage = 'قاعدة البيانات غير متوفرة';
-        errorDescription = 'يرجى المحاولة لاحقاً';
+    }
+  }
+
+  Future<void> _performSearch(String query) async {
+    try {
+      setState(() {
+        _searchQuery = query;
+        _isLoading = true;
+      });
+
+      List<dynamic> results;
+      if (query.trim().isEmpty) {
+        results = await _dbService.getAllApprovedData(widget.dataType);
+      } else {
+        results = await _dbService.searchInApprovedData(widget.dataType, query);
       }
       
-      // عرض رسالة خطأ ودية
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(errorMessage),
-          content: Text(errorDescription),
+      setState(() {
+        _dataList = results;
+        _isLoading = false;
+        _error = '';
+      });
+    } catch (e) {
+      setState(() {
+        _error = 'ط®ط·ط£ ظپظٹ ط§ظ„ط¨ط­ط«: $e';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+    });
+    _performSearch('');
+  }
+
+  String _getTitle() {
+    switch (widget.dataType) {
+      case 'martyrs':
+        return 'ط´ظ‡ط¯ط§ط،';
+      case 'injured':
+        return 'ط¬ط±ط­ظ‰';
+      case 'prisoners':
+        return 'ط£ط³ط±ظ‰';
+      default:
+        return 'ط§ظ„ط¨ظٹط§ظ†ط§طھ';
+    }
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'ط§ط¨ط­ط« ط¹ظ† ${_getTitle()}...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: _clearSearch,
+                )
+              : null,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12.0),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+        onSubmitted: _performSearch,
+        onChanged: (value) {
+          // ط§ظ„ط¨ط­ط« ط§ظ„طھظ„ظ‚ط§ط¦ظٹ ط£ط«ظ†ط§ط، ط§ظ„ظƒطھط§ط¨ط© (ظ…ط¹ طھط£ط®ظٹط±)
+          if (value.length >= 3) {
+            _performSearch(value);
+          } else if (value.isEmpty) {
+            _clearSearch();
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildDataTile(dynamic item) {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      elevation: 2,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: AppColors.primaryColor,
+          child: Text(
+            item.fullName.isNotEmpty ? item.fullName[0].toUpperCase() : '?',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+        title: Text(
+          item.fullName,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (item.age != null)
+              Text('ط§ظ„ط¹ظ…ط±: ${item.age} ط³ظ†ط©'),
+            if (widget.dataType == 'martyrs' && item.deathDate != null)
+              Text('طھط§ط±ظٹط® ط§ظ„ط§ط³طھط´ظ‡ط§ط¯: ${_formatDate(item.deathDate)}'),
+            if (widget.dataType == 'injured' && item.injuryDate != null)
+              Text('طھط§ط±ظٹط® ط§ظ„ط¥طµط§ط¨ط©: ${_formatDate(item.injuryDate)}'),
+            if (widget.dataType == 'prisoners' && item.captureDate != null)
+              Text('طھط§ط±ظٹط® ط§ظ„ط£ط³ط±: ${_formatDate(item.captureDate)}'),
+          ],
+        ),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        onTap: () {
+          // TODO: ط¥ط¶ط§ظپط© ط´ط§ط´ط© طھظپط§طµظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ
+          _showDetailsDialog(item);
+        },
+      ),
+    );
+  }
+
+  // ط¯ظˆط§ظ„ ط¹ط±ط¶ ط§ظ„طµظˆط± ظˆط§ظ„ظ…ظ„ظپط§طھ
+  void _viewImage(String imagePath) {
+    Navigator.of(context).pop(); // ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ€ dialog ط§ظ„ط­ط§ظ„ظٹ
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppBar(
+                title: const Text('طµظˆط±ط© ط´ط®طµظٹط©'),
+                automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  child: Image.file(
+                    File(imagePath),
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.broken_image, size: 64, color: Colors.grey),
+                            SizedBox(height: 16),
+                            Text('طھط¹ط°ط± طھط­ظ…ظٹظ„ ط§ظ„طµظˆط±ط©'),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _viewFile(String filePath) {
+    Navigator.of(context).pop(); // ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ€ dialog ط§ظ„ط­ط§ظ„ظٹ
+    // ظٹظ…ظƒظ† طھط·ظˆظٹط± ظ‡ط°ظ‡ ط§ظ„ط¯ط§ظ„ط© ظ„ظپطھط­ PDF ط£ظˆ ط¹ط±ط¶ ط§ظ„ظ…ظ„ظپ
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('ط³ظٹطھظ… طھط·ظˆظٹط± ط¹ط±ط¶ ظ…ظ„ظپ ط§ظ„ط³ظٹط±ط© ط§ظ„ط°ط§طھظٹط© ظ‚ط±ظٹط¨ط§ظ‹'),
+        backgroundColor: Colors.orange,
+      ),
+    );
+  }
+
+  // ًں”§ ط§ظ„ط¥طµظ„ط§ط­ ط§ظ„ط£ط³ط§ط³ظٹ: ط¯ط§ظ„ط© ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† طµظ„ط§ط­ظٹط§طھ ط§ظ„ظ…ط³ط¤ظˆظ„
+  Future<bool> _isUserAdmin() async {
+    try {
+      // ًں”§ ظ‡ط°ط§ ظ‡ظˆ ط§ظ„ط³ط·ط± ط§ظ„ظ…ظڈطµظ„ط­: ط§ط³طھط®ط¯ط§ظ… instance method ط¨ط¯ظ„ط§ظ‹ ظ…ظ† static method
+      final user = await _authService.getCurrentUser();
+      return user?.userType == 'admin';
+    } catch (e) {
+      print('Error checking if user is admin: $e');
+      return false;
+    }
+  }
+
+  void _showDetailsDialog(dynamic item) async {
+    final bool isAdmin = await _isUserAdmin();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(item.fullName),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // ط§ظ„طµظˆط± ظˆظ…ظ„ظپط§طھ ط§ظ„ط³ظٹط±ط© ط§ظ„ط°ط§طھظٹط© (ظ„ظ„ظ…ط³ط¤ظˆظ„ظٹظ† ظپظ‚ط·)
+                if (isAdmin && (item.photoPath != null || item.cvFilePath != null))
+                  ...[
+                    // ط¹ط±ط¶ ط§ظ„طµظˆط±ط© ط§ظ„ط´ط®طµظٹط©
+                    if (item.photoPath != null)
+                      Container(
+                        height: 200,
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.file(
+                            File(item.photoPath!),
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return const Center(
+                                child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    
+                    // ط£ط²ط±ط§ط± ط¹ط±ط¶ ط§ظ„طµظˆط± ظˆظ…ظ„ظپط§طھ ط§ظ„ط³ظٹط±ط©
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        if (item.photoPath != null)
+                          ElevatedButton.icon(
+                            onPressed: () => _viewImage(item.photoPath!),
+                            icon: const Icon(Icons.image),
+                            label: const Text('ط¹ط±ط¶ ط§ظ„طµظˆط±ط©'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade600,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        if (item.cvFilePath != null)
+                          ElevatedButton.icon(
+                            onPressed: () => _viewFile(item.cvFilePath!),
+                            icon: const Icon(Icons.picture_as_pdf),
+                            label: const Text('ط¹ط±ط¶ ط§ظ„ط³ظٹط±ط©'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade600,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                
+                // ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ط£ط³ط§ط³ظٹط© (ظ…ط±ط¦ظٹط© ظ„ظ„ط¬ظ…ظٹط¹)
+                if (isAdmin && item.age != null && item.age > 0)
+                  Text('ط§ظ„ط¹ظ…ط±: ${item.age} ط³ظ†ط©', style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (!isAdmin && item.age != null && item.age > 0)
+                  Text('ط§ظ„ط¹ظ…ط±: ${item.age} ط³ظ†ط©'),
+                
+                if (widget.dataType == 'martyrs' && item.nickname != null)
+                  Text('ط§ظ„ظƒظ†ظٹط©: ${item.nickname}'),
+                
+                // ظ…ط¹ظ„ظˆظ…ط§طھ ط¹ط§ظ…ط©
+                if (item.area != null) Text('ط§ظ„ظ‚ط¨ظٹظ„ط©: ${item.area}'),
+                
+                // ظ…ط¹ظ„ظˆظ…ط§طھ ط·ط¨ظٹط© ط­ط³ط§ط³ط© (ظ„ظ„ظ…ط³ط¤ظˆظ„ظٹظ† ظپظ‚ط·)
+                if (isAdmin) ...[
+                  if (widget.dataType == 'martyrs' && item.deathDate != null)
+                    Text('طھط§ط±ظٹط® ط§ظ„ط§ط³طھط´ظ‡ط§ط¯: ${_formatDate(item.deathDate)}'),
+                  if (widget.dataType == 'martyrs' && item.placeOfMartyrdom != null)
+                    Text('ظ…ظƒط§ظ† ط§ظ„ط§ط³طھط´ظ‡ط§ط¯: ${item.placeOfMartyrdom}'),
+                  if (widget.dataType == 'martyrs' && item.causeOfMartyrdom != null)
+                    Text('ط³ط¨ط¨ ط§ظ„ط§ط³طھط´ظ‡ط§ط¯: ${item.causeOfMartyrdom}'),
+                  
+                  if (widget.dataType == 'injured' && item.injuryDate != null)
+                    Text('طھط§ط±ظٹط® ط§ظ„ط¥طµط§ط¨ط©: ${_formatDate(item.injuryDate)}'),
+                  if (widget.dataType == 'injured' && item.injuryType != null)
+                    Text('ظ†ظˆط¹ ط§ظ„ط¥طµط§ط¨ط©: ${item.injuryType}'),
+                  if (widget.dataType == 'injured' && item.injuryDegree != null)
+                    Text('ط¯ط±ط¬ط© ط§ظ„ط¥طµط§ط¨ط©: ${item.injuryDegree}'),
+                  if (widget.dataType == 'injured' && item.placeOfInjury != null)
+                    Text('ظ…ظƒط§ظ† ط§ظ„ط¥طµط§ط¨ط©: ${item.placeOfInjury}'),
+                  if (widget.dataType == 'injured' && item.hospitalName != null && item.hospitalName!.isNotEmpty)
+                    Text('ط§ظ„ظ…ط³طھط´ظپظ‰: ${item.hospitalName}'),
+                  if (widget.dataType == 'injured' && item.currentStatus != null)
+                    Text('ط§ظ„ط­ط§ظ„ط© ط§ظ„ط­ط§ظ„ظٹط©: ${item.currentStatus}'),
+                  
+                  if (widget.dataType == 'prisoners' && item.captureDate != null)
+                    Text('طھط§ط±ظٹط® ط§ظ„ط£ط³ط±: ${_formatDate(item.captureDate)}'),
+                  if (widget.dataType == 'prisoners' && item.capturedBy != null)
+                    Text('ط£ظڈط³ط± ط¹ظ„ظ‰ ظٹط¯: ${item.capturedBy}'),
+                  if (widget.dataType == 'prisoners' && item.placeOfArrest != null)
+                    Text('ظ…ظƒط§ظ† ط§ظ„ط£ط³ط±: ${item.placeOfArrest}'),
+                  if (widget.dataType == 'prisoners' && item.currentStatus != null)
+                    Text('ط§ظ„ط­ط§ظ„ط© ط§ظ„ط­ط§ظ„ظٹط©: ${item.currentStatus}'),
+                  if (widget.dataType == 'prisoners' && item.currentPrison != null)
+                    Text('ظ…ظƒط§ظ† ط§ظ„ط§ط¹طھظ‚ط§ظ„: ${item.currentPrison}'),
+                  if (widget.dataType == 'prisoners' && item.familyContact != null)
+                    Text('ط¬ظ‡ط© ط§طھطµط§ظ„ ط§ظ„ط¹ط§ط¦ظ„ط©: ${item.familyContact}'),
+                  
+                  if (widget.dataType == 'injured' && item.injuryDescription != null && item.injuryDescription!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text('ظˆطµظپ ط§ظ„ط¥طµط§ط¨ط©: ${item.injuryDescription}'),
+                    ),
+                  if (item.notes != null && item.notes!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text('ظ…ظ„ط§ط­ط¸ط§طھ ط¥ط¶ط§ظپظٹط©: ${item.notes}'),
+                    ),
+                  if (item.adminNotes != null && item.adminNotes!.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text('ظ…ظ„ط§ط­ط¸ط§طھ ط¥ط¯ط§ط±ظٹط©: ${item.adminNotes}'),
+                    ),
+                ] else if (!isAdmin) ...[
+                  // ط±ط³ط§ط¦ظ„ ظ„ظ„ظ…ط³طھط®ط¯ظ…ظٹظ† ط§ظ„ط¹ط§ط¯ظٹظٹظ†
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.info, color: Colors.blue, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„طھظپطµظٹظ„ظٹط© ظ…طھط§ط­ط© ظ„ظ„ظ…ط³ط¤ظˆظ„ظٹظ† ظپظ‚ط·',
+                            style: TextStyle(color: Colors.blue.shade800, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  
+                  // ظ…ط¹ظ„ظˆظ…ط§طھ ط£ط³ط§ط³ظٹط© ظ…ط­ط¯ظˆط¯ط© ظ„ظ„ظ…ط³طھط®ط¯ظ…ظٹظ† ط§ظ„ط¹ط§ط¯ظٹظٹظ†
+                  if (widget.dataType == 'martyrs' && item.deathDate != null)
+                    Text('طھط§ط±ظٹط® ط§ظ„ط§ط³طھط´ظ‡ط§ط¯: ${_formatDate(item.deathDate)}'),
+                  if (widget.dataType == 'injured' && item.injuryDate != null)
+                    Text('طھط§ط±ظٹط® ط§ظ„ط¥طµط§ط¨ط©: ${_formatDate(item.injuryDate)}'),
+                  if (widget.dataType == 'prisoners' && item.captureDate != null)
+                    Text('طھط§ط±ظٹط® ط§ظ„ط£ط³ط±: ${_formatDate(item.captureDate)}'),
+                ],
+              ],
+            ),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('فهمت'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _loadData(); // إعادة المحاولة
-              },
-              child: const Text('إعادة المحاولة'),
+              child: const Text('ط¥ط؛ظ„ط§ظ‚'),
             ),
           ],
-        ),
-      );
-    }
+        );
+      },
+    );
   }
 
-  void _onSearchChanged(String value) {
-    setState(() {
-      _searchQuery = value;
-    });
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
   }
 
-  List<dynamic> get _filteredData {
-    if (_searchQuery.isEmpty) {
-      return _dataList;
-    }
-    
-    return _dataList.where((item) {
-      String name = '';
-      String location = '';
-      
-      if (item is Martyr) {
-        name = item.fullName.toLowerCase();
-        location = item.deathPlace.toLowerCase();
-      } else if (item is Injured) {
-        name = item.fullName.toLowerCase();
-        location = item.injuryPlace.toLowerCase();
-      } else if (item is Prisoner) {
-        name = item.fullName.toLowerCase();
-        location = item.capturePlace.toLowerCase();
-      }
-      
-      return name.contains(_searchQuery.toLowerCase()) ||
-             location.contains(_searchQuery.toLowerCase());
-    }).toList();
-  }
-
-  String _getImagePath(dynamic item) {
-    if (item is Martyr && item.photoPath?.isNotEmpty == true) {
-      return item.photoPath!;
-    } else if (item is Injured && item.photoPath?.isNotEmpty == true) {
-      return item.photoPath!;
-    } else if (item is Prisoner && item.photoPath?.isNotEmpty == true) {
-      return item.photoPath!;
-    }
-    return '';
-  }
-
-  Color _getTypeColor() {
-    switch (widget.dataType) {
-      case 'martyrs':
-        return AppColors.primaryRed;
-      case 'injured':
-        return AppColors.primaryGreen;
-      case 'prisoners':
-        return AppColors.earthBrown;
-      default:
-        return AppColors.primaryGreen;
-    }
-  }
-
-  String _getTypeTitle() {
-    switch (widget.dataType) {
-      case 'martyrs':
-        return 'الشهداء';
-      case 'injured':
-        return 'الجرحى';
-      case 'prisoners':
-        return 'الأسرى';
-      default:
-        return 'البيانات';
-    }
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'تصفح ${_getTypeTitle()} المعتمدين',
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryWhite,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: _getTypeColor(),
-        elevation: 4,
+        title: Text('طھطµظپط­ ${_getTitle()}'),
+        backgroundColor: AppColors.primaryColor,
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
             onPressed: _loadData,
-            icon: const Icon(
-              Icons.refresh,
-              color: AppColors.primaryWhite,
-            ),
-            tooltip: 'تحديث البيانات',
-          ),
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(
-              Icons.arrow_back,
-              color: AppColors.primaryWhite,
-            ),
-            tooltip: 'العودة',
+            tooltip: 'طھط­ط¯ظٹط« ط§ظ„ط¨ظٹط§ظ†ط§طھ',
           ),
         ],
       ),
       body: Column(
         children: [
-          // Search bar
-          Container(
-            margin: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.grey.withOpacity(0.1),
-                  spreadRadius: 1,
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: TextField(
-              onChanged: _onSearchChanged,
-              decoration: InputDecoration(
-                hintText: 'البحث بالاسم أو المكان...',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                prefixIcon: const Icon(Icons.search),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 16,
-                ),
-              ),
-            ),
-          ),
+          // ط´ط±ظٹط· ط§ظ„ط¨ط­ط«
+          _buildSearchBar(),
           
-          // Content
-          Expanded(
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(),
-                  )
-                : _filteredData.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search_off,
-                              size: 64,
-                              color: Colors.grey[400],
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'لا توجد بيانات',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _searchQuery.isNotEmpty 
-                                  ? 'لا توجد نتائج للبحث عن "$_searchQuery"'
-                                  : 'لم يتم إضافة أي بيانات بعد',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[500],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: _filteredData.length,
-                        itemBuilder: (context, index) {
-                          return _buildDataCard(_filteredData[index]);
-                        },
-                      ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDataCard(dynamic item) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 1,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Image section
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Container(
-              height: 200,
-              width: double.infinity,
-              color: _getTypeColor().withOpacity(0.1),
-              child: _buildImageWidget(item),
+          // ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ط¨ط­ط«
+          if (_searchQuery.isNotEmpty && !_isLoading)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'ط§ظ„ظ†طھط§ط¦ط¬ ط¹ظ†: "$_searchQuery" - ${_dataList.length} ط¹ظ†طµط±',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
             ),
-          ),
           
-          // Content section
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeaderSection(item),
-                const SizedBox(height: 12),
-                _buildDetailsSection(item),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildImageWidget(dynamic item) {
-    String imagePath = _getImagePath(item);
-    
-    if (imagePath.isNotEmpty) {
-      return Image.network(
-        imagePath,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return _buildNoImageWidget();
-        },
-      );
-    } else {
-      return _buildNoImageWidget();
-    }
-  }
-
-  Widget _buildNoImageWidget() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.person_off,
-            size: 64,
-            color: _getTypeColor(),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'لا توجد صورة',
-            style: TextStyle(
-              color: _getTypeColor(),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderSection(dynamic item) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                item.fullName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryBlack,
-                ),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: _getTypeColor(),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                _getDataTypeLabel(item),
-                style: const TextStyle(
-                  color: AppColors.primaryWhite,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        Text(
-          'ID: ${item.idNumber}',
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDetailsSection(dynamic item) {
-    List<Widget> widgets = [];
-    
-    if (item is Martyr) {
-      widgets.addAll([
-        _buildDetailRow('الاسم الكامل', item.fullName),
-        _buildDetailRow('تاريخ الوفاة', _formatDate(item.deathDate)),
-        _buildDetailRow('القبيلة/المنطقة', item.tribe),
-        _buildDetailRow('مكان الوفاة', item.deathPlace),
-        _buildDetailRow('السبب', item.causeOfDeath),
-        _buildDetailRow('العمر', '${item.age} سنة'),
-        if (item.notes?.isNotEmpty == true)
-          _buildDetailRow('ملاحظات', item.notes!),
-      ]);
-    } else if (item is Injured) {
-      widgets.addAll([
-        _buildDetailRow('الاسم الكامل', item.fullName),
-        _buildDetailRow('تاريخ الإصابة', _formatDate(item.injuryDate)),
-        _buildDetailRow('القبيلة/المنطقة', item.tribe),
-        _buildDetailRow('مكان الإصابة', item.injuryPlace),
-        _buildDetailRow('نوع الإصابة', item.injuryType),
-        _buildDetailRow('درجة الإصابة', item.injuryDegree),
-        _buildDetailRow('الوصف', item.injuryDescription),
-        if (item.notes?.isNotEmpty == true)
-          _buildDetailRow('ملاحظات', item.notes!),
-      ]);
-    } else if (item is Prisoner) {
-      widgets.addAll([
-        _buildDetailRow('الاسم الكامل', item.fullName),
-        _buildDetailRow('تاريخ الأسر', _formatDate(item.captureDate)),
-        _buildDetailRow('القبيلة/المنطقة', item.tribe),
-        _buildDetailRow('مكان الأسر', item.capturePlace),
-        _buildDetailRow('جهة الأسر', item.capturedBy),
-        _buildDetailRow('الحالة الحالية', item.currentStatus),
-        if (item.notes?.isNotEmpty == true)
-          _buildDetailRow('ملاحظات', item.notes!),
-      ]);
-    }
-    
-    return Column(
-      children: widgets,
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-                color: AppColors.primaryBlack,
-                fontSize: 14,
-              ),
-            ),
-          ),
+          // ظ…ط­طھظˆظ‰ ط§ظ„ط¨ظٹط§ظ†ط§طھ
           Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: AppColors.primaryBlack,
-                fontSize: 14,
-              ),
+            child: RefreshIndicator(
+              onRefresh: _loadData,
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error.isNotEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.error, size: 64, color: Colors.red),
+                              const SizedBox(height: 16),
+                              Text(
+                                _error,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(color: Colors.red),
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: _loadData,
+                                child: const Text('ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط©'),
+                              ),
+                            ],
+                          ),
+                        )
+                      : _dataList.isEmpty
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    _searchQuery.isNotEmpty ? Icons.search_off : Icons.data_usage,
+                                    size: 64,
+                                    color: Colors.grey,
+                                  ),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _searchQuery.isNotEmpty
+                                        ? 'ظ„ط§ طھظˆط¬ط¯ ظ†طھط§ط¦ط¬ ظ„ظ„ط¨ط­ط« "$_searchQuery"'
+                                        : 'ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ظ…ط¹طھظ…ط¯ط©',
+                                    style: const TextStyle(fontSize: 18, color: Colors.grey),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            )
+                          : ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              itemCount: _dataList.length,
+                              itemBuilder: (context, index) {
+                                return _buildDataTile(_dataList[index]);
+                              },
+                            ),
             ),
           ),
         ],
       ),
     );
-  }
-
-  String _getDataTypeLabel(dynamic item) {
-    if (item is Martyr) return 'شهيد';
-    if (item is Injured) return 'جريح';
-    if (item is Prisoner) return 'أسير';
-    return 'غير محدد';
   }
 }
